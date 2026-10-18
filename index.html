@@ -1,0 +1,2043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Warehouse OS — Supabase</title>
+<link rel="manifest" id="pwa-manifest">
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script src="https://unpkg.com/vue@3.5.13/dist/vue.global.prod.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cairo:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#121212;--surface:#1a1a1a;--surface-2:#1f1f1f;--surface-3:#252525;--border:#2a2a2a;--border-2:#333;--text:#fff;--text-dim:#888;--text-dimmer:#666;--text-dimmest:#555;--accent:#22c55e;--accent-hover:#16a34a;--danger:#ef4444;--info:#60a5fa;--warn:#f59e0b}
+html.light{--bg:#f5f5f5;--surface:#fff;--surface-2:#fafafa;--surface-3:#f0f0f0;--border:#e0e0e0;--border-2:#d0d0d0;--text:#111;--text-dim:#555;--text-dimmer:#777;--text-dimmest:#999}
+*,*::before,*::after{box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);margin:0;transition:background .2s,color .2s}
+html[dir="rtl"] body{font-family:'Cairo',sans-serif}
+html.font-cairo-en body{font-family:'Cairo',sans-serif}
+.mono{font-family:'JetBrains Mono',monospace}
+[v-cloak]{display:none}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border-2);border-radius:4px}
+.app-shell{min-height:100vh;display:flex;overflow:hidden;background:var(--bg)}
+.sidebar{width:256px;flex-shrink:0;background:var(--surface);border-inline-end:1px solid var(--border);display:flex;flex-direction:column;height:100vh;position:sticky;top:0}
+.main-content{flex:1;height:100vh;overflow-y:auto}
+.main-container{max-width:1300px;margin:0 auto;padding:32px}
+.sidebar-header{padding:24px 24px 16px}
+.brand{font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--text-dimmer)}
+.sidebar-lang{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:0 16px;margin-bottom:8px}
+.lang-btn{padding:6px 8px;font-size:11px;font-weight:600;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-dim);cursor:pointer;transition:all .15s}
+.lang-btn.active{background:var(--surface-3);color:var(--text);border-color:var(--border-2)}
+.theme-toggle{margin:0 16px 16px;padding:6px 8px;font-size:11px;font-weight:600;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-dim);cursor:pointer;width:calc(100% - 32px)}
+.sidebar-nav{flex:1;padding:0 16px;display:flex;flex-direction:column;gap:6px;overflow-y:auto}
+.nav-link{padding:10px 16px;font-size:14px;font-weight:500;border-radius:8px;color:var(--text-dim);text-decoration:none;transition:all .15s;cursor:pointer}
+.nav-link:hover{color:var(--text)}
+.nav-link.active{background:var(--surface-3);color:var(--text)}
+.sidebar-footer{padding:16px 24px 24px;border-top:1px solid var(--border)}
+.version{font-size:11px;color:var(--text-dimmest);font-family:'JetBrains Mono',monospace}
+.record-count{font-size:10px;color:var(--text-dimmest);margin-top:4px;font-family:'JetBrains Mono',monospace}
+.conn-status{font-size:10px;margin-top:6px;font-family:'JetBrains Mono',monospace}
+.conn-status.online{color:var(--accent)}
+.conn-status.offline{color:var(--danger)}
+.conn-status.syncing{color:var(--warn)}
+.page-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:32px;gap:16px;flex-wrap:wrap}
+.page-title{font-size:30px;font-weight:600;letter-spacing:-.025em;margin:0 0 8px}
+.page-subtitle{font-size:14px;color:var(--text-dimmer);margin:0}
+.page-actions{display:flex;gap:8px;flex-wrap:wrap}
+.back-link{font-size:12px;color:var(--text-dimmer);cursor:pointer;display:inline-block;margin-bottom:8px;text-decoration:none}
+.btn{padding:10px 20px;font-size:14px;font-weight:600;border-radius:8px;border:none;cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover:not(:disabled){background:var(--accent-hover)}
+.btn-ghost{background:transparent;color:var(--text-dim);border:1px solid var(--border)}
+.btn-ghost:hover{color:var(--text);background:var(--surface-3)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-danger-outline{background:transparent;color:var(--danger);border:1px solid rgba(239,68,68,.4)}
+.btn-danger-outline:hover{background:rgba(239,68,68,.1)}
+.btn-sm{padding:6px 12px;font-size:12px}
+.text-start{text-align:start}
+.alert{padding:16px;border-radius:12px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px}
+.alert-warning{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);color:var(--warn)}
+.alert-info{background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.3);color:var(--info)}
+.alert-danger{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);color:var(--danger)}
+.alert-link{background:none;border:none;color:inherit;text-decoration:underline;cursor:pointer;font-weight:700;font-size:12px}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:32px}
+.stat-card{padding:20px;border-radius:16px;background:var(--surface);border:1px solid var(--border)}
+.stat-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-dimmer);margin-bottom:8px}
+.stat-value{font-size:30px;font-weight:600}
+.stat-trend{font-size:11px;margin-top:4px}
+.stat-trend.positive{color:var(--accent)}
+.stat-trend.negative{color:var(--danger)}
+.chart-card{padding:24px;border-radius:16px;background:var(--surface);border:1px solid var(--border);margin-bottom:32px}
+.chart-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;flex-wrap:wrap;gap:8px}
+.chart-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-dimmer);margin:0 0 4px}
+.chart-total{display:flex;align-items:baseline;gap:6px}
+.chart-total-value{font-size:28px;font-weight:600}
+.chart-total-label{font-size:12px;color:var(--text-dimmer)}
+.chart-peak{font-size:12px;color:var(--text-dimmer)}
+.chart-peak strong{color:var(--accent)}
+.chart-bars{display:flex;align-items:flex-end;justify-content:space-around;gap:8px;height:180px;padding:0 4px;border-bottom:1px solid var(--border);position:relative}
+.chart-bar-col{flex:1;display:flex;flex-direction:column;align-items:center;height:100%;cursor:pointer;position:relative}
+.chart-bar-wrapper{flex:1;width:100%;max-width:60px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;position:relative}
+.chart-bar-value{font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px;opacity:0;transition:opacity .15s;height:16px}
+.chart-bar-value.visible{opacity:1}
+.chart-bar{width:100%;background:var(--accent);border-radius:4px 4px 0 0;min-height:4px;transition:all .2s;opacity:.7}
+.chart-bar.active{opacity:1;transform:scaleY(1.02);transform-origin:bottom}
+.chart-bar-label{font-size:11px;color:var(--text-dimmest);margin-top:8px;font-weight:500;padding-bottom:8px;transition:color .15s}
+.chart-bar-label.active{color:var(--accent);font-weight:700}
+.table-card{border-radius:16px;overflow:hidden;background:var(--surface);border:1px solid var(--border)}
+.table-header{padding:16px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.table-title{font-size:18px;font-weight:500;margin:0}
+.table-wrapper{overflow-x:auto}
+.data-table{width:100%;border-collapse:collapse}
+.data-table thead{background:var(--surface-2)}
+.data-table th{padding:12px 16px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--text-dimmest);text-align:start}
+.data-table th.sortable{cursor:pointer;user-select:none}
+.data-table th.sortable:hover{color:var(--text-dim)}
+.data-table td{padding:12px 16px;font-size:13px;border-top:1px solid var(--border)}
+.data-table .checkbox-cell{width:32px;padding:8px}
+.data-table .text-end{text-align:end}
+.data-table .empty-row{padding:48px;text-align:center;color:var(--text-dimmest)}
+.row-muted{opacity:.5}
+.sort-indicator{margin-inline-start:4px;color:var(--accent);font-size:10px}
+.device-image{width:40px;height:40px;border-radius:6px;overflow:hidden;border:1px solid var(--border-2);background:var(--surface-3)}
+.device-image img{width:100%;height:100%;object-fit:cover;display:block}
+.device-image .image-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text-dimmest)}
+.dup-warning{display:inline-block;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;background:rgba(245,158,11,.15);color:var(--warn);margin-top:4px}
+.status-select{padding:4px 8px;font-size:10px;font-weight:700;border-radius:4px;border:1px solid;cursor:pointer;text-transform:uppercase}
+.status-pending{background:var(--surface-3);color:var(--text-dim);border-color:var(--border-2)}
+.status-processing{background:rgba(96,165,250,.15);color:var(--info);border-color:rgba(96,165,250,.3)}
+.status-done{background:rgba(34,197,94,.15);color:var(--accent);border-color:rgba(34,197,94,.3)}
+.status-rejected{background:rgba(239,68,68,.15);color:var(--danger);border-color:rgba(239,68,68,.3)}
+.badge{display:inline-block;padding:2px 8px;font-size:10px;font-weight:700;border-radius:4px;border:1px solid;text-transform:uppercase}
+.badge-pending{background:var(--surface-3);color:var(--text-dim);border-color:var(--border-2)}
+.badge-processing{background:rgba(96,165,250,.2);color:var(--info);border-color:rgba(96,165,250,.3)}
+.badge-done{background:rgba(34,197,94,.2);color:var(--accent);border-color:rgba(34,197,94,.3)}
+.badge-rejected{background:rgba(239,68,68,.2);color:var(--danger);border-color:rgba(239,68,68,.3)}
+.filters-row{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.search-input{flex:1;min-width:240px}
+.filter-buttons{display:flex;gap:6px;flex-wrap:wrap}
+.filter-btn{padding:8px 12px;font-size:12px;font-weight:600;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-dim);cursor:pointer}
+.filter-btn.active{background:var(--surface-3);color:var(--text);border-color:var(--border-2)}
+.date-range-row{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center;font-size:12px}
+.date-inputs{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.date-presets{display:flex;gap:4px}
+.preset-btn{padding:4px 8px;font-size:11px;border-radius:4px;background:var(--surface-3);border:none;color:var(--text-dim);cursor:pointer}
+.page-size{margin-inline-start:auto;display:flex;align-items:center;gap:8px}
+.date-label{color:var(--text-dimmer)}
+.bulk-bar{padding:12px;border-radius:8px;margin-bottom:12px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.bulk-info{font-size:14px;color:var(--accent)}
+.bulk-actions{display:flex;gap:8px;flex-wrap:wrap}
+.pagination{margin-top:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.pagination-info{font-size:12px;color:var(--text-dimmer)}
+.pagination-controls{display:flex;gap:4px;align-items:center}
+.page-btn{padding:6px 12px;font-size:12px;font-weight:600;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--text-dim);cursor:pointer}
+.page-btn:disabled{opacity:.3;cursor:not-allowed}
+.page-current{padding:6px 12px;font-size:12px;font-weight:600;border-radius:4px;background:var(--surface-3);color:var(--text)}
+.form-card{padding:24px;border-radius:16px;background:var(--surface);border:1px solid var(--border);max-width:720px;display:flex;flex-direction:column;gap:16px}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--text-dim)}
+.form-hint{font-size:11px;color:var(--text-dimmest)}
+.form-error{font-size:12px;color:var(--danger)}
+.form-section{padding:16px;border-radius:8px;background:var(--bg);border:1px solid var(--border);display:flex;flex-direction:column;gap:12px}
+.form-legend{font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-dimmer);padding:0}
+.input{padding:10px 12px;font-size:14px;border-radius:8px;background:var(--bg);border:1px solid var(--border);color:var(--text);width:100%;transition:border-color .15s}
+.input:focus{outline:none;border-color:var(--accent)}
+.input-sm{padding:6px 8px;font-size:12px;width:auto}
+.input-mono{font-family:'JetBrains Mono',monospace}
+.input.valid{border-color:var(--accent)}
+.input.invalid{border-color:var(--danger)}
+.input-row{display:flex;gap:8px;align-items:stretch}
+.flex-1{flex:1}
+.field-status{font-size:12px;padding:4px 8px;border-radius:4px;display:inline-block}
+.field-status.valid{background:rgba(34,197,94,.15);color:var(--accent)}
+.field-status.invalid{background:rgba(239,68,68,.15);color:var(--danger)}
+.field-warning{padding:8px 12px;border-radius:6px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);color:var(--warn);font-size:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.form-actions{display:flex;gap:8px;padding-top:8px}
+.details-grid{display:grid;grid-template-columns:2fr 1fr;gap:16px}
+@media(max-width:1024px){.details-grid{grid-template-columns:1fr}}
+.details-main{display:flex;flex-direction:column;gap:16px}
+.details-side{display:flex;flex-direction:column;gap:16px}
+.card{padding:24px;border-radius:16px;background:var(--surface);border:1px solid var(--border)}
+.card-danger{border-color:rgba(239,68,68,.4)}
+.card-title{font-size:18px;font-weight:500;margin:0 0 16px}
+.card-title-sm{font-size:13px;font-weight:700;text-transform:uppercase;margin:0 0 12px;color:var(--text-dim)}
+.card-subtitle{font-size:12px;color:var(--text-dimmer);margin:-8px 0 16px}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.info-grid dt{font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-dimmer);margin-bottom:4px}
+.info-grid dd{font-size:14px;margin:0}
+.col-span-2{grid-column:span 2}
+.break-all{word-break:break-all}
+.status-buttons{display:flex;gap:8px;flex-wrap:wrap}
+.status-btn{padding:6px 12px;font-size:12px;font-weight:600;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-dim);cursor:pointer}
+.status-btn.active{background:var(--surface-3);color:var(--text);border-color:var(--border-2)}
+.images-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.image-tile{position:relative}
+.image-tile img{width:100%;height:112px;object-fit:cover;border-radius:6px;border:1px solid var(--border-2)}
+.image-remove{position:absolute;top:4px;inset-inline-end:4px;width:24px;height:24px;border-radius:4px;background:#ef4444;color:#fff;border:none;cursor:pointer;font-size:14px;line-height:1;opacity:0;transition:opacity .15s}
+.image-tile:hover .image-remove{opacity:1}
+.activity-list{max-height:256px;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
+.activity-item{padding:8px;border-radius:6px;background:var(--bg);font-size:12px;display:flex;gap:8px;flex-wrap:wrap}
+.activity-date{color:var(--text-dimmest)}
+.timeline{color:var(--text-dimmer);display:flex;flex-direction:column;gap:4px}
+.dropzone{border:2px dashed var(--border-2);border-radius:12px;padding:24px;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg)}
+.dropzone:hover,.dropzone.dragover{border-color:var(--accent);background:rgba(34,197,94,.05)}
+.dz-icon{width:40px;height:40px;margin:0 auto 8px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--surface-3);color:var(--accent);font-size:20px}
+.dz-primary{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px}
+.dz-secondary{font-size:12px;color:var(--text-dimmer)}
+.dz-hint{font-size:10px;color:var(--text-dimmest);margin-top:4px}
+.image-preview{margin-top:12px;display:flex;align-items:center;gap:12px}
+.image-preview img{width:64px;height:64px;object-fit:cover;border-radius:6px;border:1px solid var(--border-2)}
+.settings-stack{display:flex;flex-direction:column;gap:16px;max-width:768px}
+.settings-list{display:flex;flex-direction:column;gap:12px}
+.setting-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer;gap:16px}
+.setting-row:last-child{border-bottom:none}
+.setting-label{font-size:14px;font-weight:500}
+.setting-desc{font-size:11px;color:var(--text-dimmer);margin-top:2px}
+.toggle-checkbox{appearance:none;width:20px;height:20px;border:2px solid var(--border-2);border-radius:5px;background:var(--bg);cursor:pointer;position:relative;flex-shrink:0;transition:all .15s}
+.toggle-checkbox:checked{background:var(--accent);border-color:var(--accent)}
+.toggle-checkbox:checked::after{content:'✓';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:13px;font-weight:bold;line-height:1}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal-card{width:min(90vw,560px);max-height:90vh;overflow-y:auto;background:var(--surface);padding:24px;border-radius:16px;border:1px solid var(--border)}
+.modal-large{width:min(90vw,720px)}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.modal-header h3{font-size:18px;font-weight:600;margin:0}
+.modal-close{font-size:24px;background:none;border:none;color:var(--text);cursor:pointer;line-height:1}
+.modal-section{margin-bottom:16px}
+.modal-section-label{font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-dimmer);margin-bottom:8px}
+.modal-actions{display:flex;gap:8px;margin-top:12px}
+.info-box{padding:16px;border-radius:8px;background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.25);margin-bottom:16px;display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.info-box-content{flex:1;min-width:200px}
+.info-box-title{font-size:14px;font-weight:600;color:var(--info);margin-bottom:4px}
+.info-box-text{font-size:12px;color:var(--text-dimmer);line-height:1.5}
+.info-box-code{margin-top:8px;padding:8px;font-size:12px;border-radius:4px;background:var(--bg);color:var(--text)}
+.example-table-wrapper,.preview-table-wrapper{border-radius:8px;overflow:auto;border:1px solid var(--border)}
+.preview-table-wrapper{max-height:200px}
+.dup-icon{color:var(--warn)}
+.ok-icon{color:var(--accent)}
+.qr-reader{width:100%}
+.toast{position:fixed;bottom:16px;inset-inline-end:16px;padding:12px 16px;border-radius:8px;font-size:14px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.4);z-index:200;display:flex;align-items:center;gap:12px;max-width:90vw}
+.toast-success{background:var(--accent);color:#fff}
+.toast-error{background:var(--danger);color:#fff}
+.toast-info{background:var(--info);color:#fff}
+.toast-undo{background:none;border:none;color:inherit;text-decoration:underline;font-weight:700;cursor:pointer}
+.fade-enter-active,.fade-leave-active{transition:opacity .2s}
+.fade-enter-from,.fade-leave-to{opacity:0}
+.text-sm{font-size:13px}
+.text-xs{font-size:11px}
+.text-dim{color:var(--text-dim)}
+.text-danger{color:var(--danger)}
+.text-center{text-align:center}
+.font-medium{font-weight:500}
+.mb-4{margin-bottom:16px}
+.mt-1{margin-top:4px}
+.mt-2{margin-top:8px}
+.mt-3{margin-top:12px}
+.mx-1{margin-inline:4px}
+.w-24{width:96px}
+.flex{display:flex}
+.items-center{align-items:center}
+.gap-2{gap:8px}
+.gap-3{gap:12px}
+.flex-col{flex-direction:column}
+.cursor-pointer{cursor:pointer}
+.hidden{display:none}
+.whitespace-nowrap{white-space:nowrap}
+.link{color:var(--text-dimmer);text-decoration:none;cursor:pointer;font-size:12px;font-weight:700}
+.link:hover{color:var(--text)}
+.link-danger{color:var(--danger)}
+.link-danger:hover{color:#f87171}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-inline-end:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<div id="app" v-cloak class="app-shell">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-header"><span class="brand">{{ t.appName }}</span></div>
+    <div class="sidebar-lang">
+      <button v-for="code in ['en','ar']" :key="code" class="lang-btn" :class="{active:lang===code}" @click="setLang(code)">
+        {{ code==='en'?'English':'العربية' }}
+      </button>
+    </div>
+    <button class="theme-toggle" @click="toggleTheme">{{ theme==='dark'?t.lightMode:t.darkMode }}</button>
+    <nav class="sidebar-nav">
+      <a v-for="item in visibleNavItems" :key="item.id" class="nav-link" :class="{active:page===item.id}" @click.prevent="navigateTo(item.id)" href="#">{{ item.label }}</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="version">v5.0.1 · Supabase</div>
+      <div class="record-count">{{ devices.length }} {{ t.records }}</div>
+      <div class="conn-status" :class="connState.class">{{ connState.label }}</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="main-container">
+
+      <!-- ============ DASHBOARD ============ -->
+      <section v-if="page==='dashboard'" class="page">
+        <header class="page-header">
+          <div>
+            <h1 class="page-title">{{ t.overview }}</h1>
+            <p class="page-subtitle">{{ t.overviewSub }}</p>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-ghost" @click="loadAll" :disabled="loading">{{ t.refresh }}</button>
+            <button class="btn btn-primary" @click="navigateTo('add-device')">{{ t.addDevice }}</button>
+          </div>
+        </header>
+
+        <div v-if="loadError" class="alert alert-danger">
+          <span>⚠ {{ loadError }}</span>
+          <button class="alert-link" @click="loadAll">{{ t.retry }}</button>
+        </div>
+
+        <div v-if="features.agingAlert && agingDevices.length" class="alert alert-warning">
+          <span>{{ t.agingAlert.replace('{n}', agingDevices.length).replace('{d}', agingDays) }}</span>
+          <button class="alert-link" @click="goToProcessingDevices">{{ t.view }}</button>
+        </div>
+
+        <div class="stats-grid">
+          <div v-for="card in statCards" :key="card.key" class="stat-card">
+            <div class="stat-label">{{ card.label }}</div>
+            <div class="stat-value" :style="{color:card.color}">{{ card.value }}</div>
+            <div v-if="card.trend!==null&&card.trend!==undefined" class="stat-trend" :class="card.trend>=0?'positive':'negative'">
+              {{ card.trend>=0?'▲':'▼' }} {{ Math.abs(card.trend) }}% {{ t.vsYesterday }}
+            </div>
+          </div>
+        </div>
+
+        <div v-if="features.sparkline" class="chart-card">
+          <div class="chart-header">
+            <div>
+              <h3 class="chart-title">{{ t.last7Days }}</h3>
+              <div class="chart-total">
+                <span class="chart-total-value">{{ totalDoneLast7 }}</span>
+                <span class="chart-total-label">{{ t.devicesCompleted }}</span>
+              </div>
+            </div>
+            <div class="chart-peak">{{ t.max }}: <strong>{{ maxDoneDay }}</strong></div>
+          </div>
+          <div class="chart-bars">
+            <div v-for="(day,i) in last7Days" :key="i" class="chart-bar-col" @mouseenter="hoveredIdx=i" @mouseleave="hoveredIdx=null">
+              <div class="chart-bar-wrapper">
+                <div class="chart-bar-value" :class="{visible:hoveredIdx===i||day.count>0}">{{ day.count }}</div>
+                <div class="chart-bar" :class="{active:hoveredIdx===i}" :style="{height:barHeight(day.count)+'%'}"></div>
+              </div>
+              <div class="chart-bar-label" :class="{active:hoveredIdx===i}">{{ day.label }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <div class="table-header">
+            <h2 class="table-title">{{ t.recentDevices }}</h2>
+            <a class="link" @click.prevent="navigateTo('all-devices')" href="#">{{ t.viewAll }}</a>
+          </div>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead><tr>
+                <th>{{ t.colImage }}</th><th>{{ t.colImeiSerial }}</th><th>{{ t.colSentBy }}</th>
+                <th>{{ t.colDate }}</th><th>{{ t.colStatus }}</th><th class="text-end">{{ t.colActions }}</th>
+              </tr></thead>
+              <tbody>
+                <tr v-for="d in recentDevices" :key="d.id">
+                  <td>
+                    <div class="device-image">
+                      <img v-if="d.images&&d.images.length" :src="d.images[0]" alt="">
+                      <div v-else class="image-placeholder">N/A</div>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="mono font-medium">{{ d.imei }}</div>
+                    <div class="text-xs text-dim mono">SN: {{ d.serial }}</div>
+                  </td>
+                  <td>
+                    <div>{{ d.sentByName }}</div>
+                    <div v-if="d.sentByPhone" class="text-xs text-dim mono">{{ d.sentByPhone }}</div>
+                  </td>
+                  <td class="text-sm text-dim">{{ fmtDate(d.uploadDate) }}</td>
+                  <td><status-badge :status="d.status" :label="statusLabel(d.status)"/></td>
+                  <td class="text-end"><a class="link" @click.prevent="openDetails(d.id)" href="#">{{ t.view }}</a></td>
+                </tr>
+                <tr v-if="!devices.length&&!loading">
+                  <td colspan="6" class="empty-row">{{ t.noDevices }}</td>
+                </tr>
+                <tr v-if="loading">
+                  <td colspan="6" class="empty-row"><span class="spinner"></span>{{ t.loading }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ ALL DEVICES ============ -->
+      <section v-if="page==='all-devices'" class="page">
+        <header class="page-header">
+          <div>
+            <h1 class="page-title">{{ t.allDevices }}</h1>
+            <p class="page-subtitle">{{ t.allDevicesSub }}</p>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-ghost" @click="loadAll" :disabled="loading">{{ t.refresh }}</button>
+            <button v-if="features.bulkDelete" class="btn btn-danger-outline" @click="openBulkDelete">{{ t.bulkDeleteBtn }}</button>
+            <button v-if="features.exportCsv" class="btn btn-ghost" @click="exportCSV">{{ t.export }}</button>
+            <button v-if="features.importExcel" class="btn btn-ghost" @click="openImport">{{ t.import }}</button>
+            <button class="btn btn-primary" @click="navigateTo('add-device')">{{ t.addDevice }}</button>
+          </div>
+        </header>
+
+        <div class="filters-row">
+          <input ref="searchInput" v-model="search" class="input search-input" type="text" :placeholder="t.searchPlaceholder">
+          <div class="filter-buttons">
+            <button v-for="f in statusFilters" :key="f.value" class="filter-btn" :class="{active:statusFilter===f.value}" @click="statusFilter=f.value">{{ f.label }}</button>
+          </div>
+        </div>
+
+        <div class="date-range-row">
+          <div class="date-inputs">
+            <label class="date-label">{{ t.from }}</label>
+            <input v-model="dateFrom" class="input input-sm" type="date">
+            <label class="date-label">{{ t.to }}</label>
+            <input v-model="dateTo" class="input input-sm" type="date">
+            <button v-if="dateFrom||dateTo" class="link text-xs" @click="dateFrom='';dateTo=''">{{ t.clear }}</button>
+          </div>
+          <div class="date-presets">
+            <button v-for="p in datePresets" :key="p.days" class="preset-btn" @click="setDatePreset(p.days)">{{ p.label }}</button>
+          </div>
+          <div class="page-size">
+            <label class="date-label">{{ t.perPage }}</label>
+            <select v-model.number="pageSize" class="input input-sm">
+              <option v-for="s in [10,25,50,100]" :key="s" :value="s">{{ s }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div v-if="selectedIds.length" class="bulk-bar">
+          <span class="bulk-info">{{ t.selectedN.replace('{n}',selectedIds.length) }}</span>
+          <div class="bulk-actions">
+            <button v-for="s in statuses" :key="s.value" class="btn btn-sm btn-ghost" :disabled="busy" @click="bulkUpdateStatus(s.value)">{{ s.label }}</button>
+            <button class="btn btn-sm btn-danger" :disabled="busy" @click="bulkDelete">{{ t.delete }}</button>
+            <button class="btn btn-sm btn-ghost" @click="selectedIds=[]">{{ t.cancel }}</button>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead><tr>
+                <th class="checkbox-cell"><input type="checkbox" :checked="allVisibleSelected" @change="toggleSelectAll"></th>
+                <th class="sortable" @click="setSort('imei')">{{ t.colImei }}<span v-if="sortBy==='imei'" class="sort-indicator">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
+                <th class="sortable" @click="setSort('serial')">{{ t.colSerial }}<span v-if="sortBy==='serial'" class="sort-indicator">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
+                <th>{{ t.colSentBy }}</th>
+                <th class="sortable" @click="setSort('uploadDate')">{{ t.colUploadDate }}<span v-if="sortBy==='uploadDate'" class="sort-indicator">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
+                <th>{{ t.colStatus }}</th>
+                <th class="text-end">{{ t.colActions }}</th>
+              </tr></thead>
+              <tbody>
+                <tr v-for="d in pagedDevices" :key="d.id">
+                  <td class="checkbox-cell"><input type="checkbox" :value="d.id" v-model="selectedIds"></td>
+                  <td>
+                    <div class="mono">{{ d.imei }}</div>
+                    <div v-if="isDuplicateImei(d.imei)" class="dup-warning">⚠ {{ t.duplicate }}</div>
+                  </td>
+                  <td>
+                    <div class="mono text-sm">{{ d.serial }}</div>
+                    <div v-if="isDuplicateSerial(d.serial)" class="dup-warning">⚠ {{ t.duplicate }}</div>
+                  </td>
+                  <td>
+                    <div>{{ d.sentByName }}</div>
+                    <div v-if="d.sentByPhone" class="text-xs text-dim mono">{{ d.sentByPhone }}</div>
+                    <a v-if="d.sentBySocial" :href="d.sentBySocial" target="_blank" class="text-xs link break-all">{{ d.sentBySocial }}</a>
+                  </td>
+                  <td class="text-sm text-dim">{{ fmtDate(d.uploadDate) }}</td>
+                  <td>
+                    <select :value="d.status" class="status-select" :class="'status-'+d.status" @change="quickUpdateStatus(d.id,$event.target.value)" :disabled="busy">
+                      <option v-for="s in statuses" :key="s.value" :value="s.value">{{ s.label }}</option>
+                    </select>
+                  </td>
+                  <td class="text-end whitespace-nowrap">
+                    <a class="link mx-1" @click.prevent="openDetails(d.id)" href="#">{{ t.view }}</a>
+                    <a class="link link-danger mx-1" @click.prevent="deleteDevice(d.id)" href="#">{{ t.delete }}</a>
+                  </td>
+                </tr>
+                <tr v-if="!pagedDevices.length&&!loading">
+                  <td colspan="7" class="empty-row">{{ t.noMatch }}</td>
+                </tr>
+                <tr v-if="loading">
+                  <td colspan="7" class="empty-row"><span class="spinner"></span>{{ t.loading }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="pagination">
+          <div class="pagination-info">{{ t.showing }} {{ pageStart+1 }}–{{ Math.min(pageStart+pageSize,filteredDevices.length) }} {{ t.of }} {{ filteredDevices.length }}</div>
+          <div class="pagination-controls">
+            <button class="page-btn" :disabled="currentPage===1" @click="currentPage=Math.max(1,currentPage-1)">‹</button>
+            <span class="page-current">{{ currentPage }} / {{ totalPages }}</span>
+            <button class="page-btn" :disabled="currentPage===totalPages" @click="currentPage=Math.min(totalPages,currentPage+1)">›</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ ADD DEVICE ============ -->
+      <section v-if="page==='add-device'" class="page">
+        <header class="page-header">
+          <div>
+            <h1 class="page-title">{{ t.addDevice }}</h1>
+            <p class="page-subtitle">{{ t.addDeviceSub }}</p>
+          </div>
+        </header>
+
+        <div v-if="draftRestored" class="alert alert-info">
+          <span>{{ t.draftRestored }}</span>
+          <button class="alert-link" @click="clearDraft">{{ t.clear }}</button>
+        </div>
+
+        <form class="form-card" @submit.prevent="saveDevice">
+          <div class="form-group">
+            <label class="form-label">{{ t.imei }} *</label>
+            <div class="input-row">
+              <input v-model="form.imei" class="input input-mono flex-1" :class="imeiFieldClass" type="text" :placeholder="t.imeiPlaceholder" maxlength="15" @input="validateImeiInput">
+              <button v-if="features.scanner" type="button" class="btn btn-ghost btn-sm" @click="openScanner('imei')">{{ t.scan }}</button>
+            </div>
+            <div v-if="imeiStatus.checked" class="field-status" :class="imeiStatus.valid?'valid':'invalid'">
+              {{ imeiStatus.valid?'✓ '+t.imeiValid:'✗ '+imeiStatus.error }}
+            </div>
+            <div v-if="duplicateImeiDevice" class="field-warning">
+              ⚠ {{ t.duplicateImeiFound }}
+              <button type="button" class="link" @click.prevent="openDetails(duplicateImeiDevice.id)">{{ t.viewDevice }}</button>
+            </div>
+            <div class="form-hint">{{ t.imeiHint }}</div>
+            <div v-if="errors.imei" class="form-error">{{ errors.imei }}</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">{{ t.serial }} *</label>
+            <div class="input-row">
+              <input v-model="form.serial" class="input input-mono flex-1" :class="serialFieldClass" type="text" :placeholder="t.serialPlaceholder" @input="validateSerialInput">
+              <button v-if="features.scanner" type="button" class="btn btn-ghost btn-sm" @click="openScanner('serial')">{{ t.scan }}</button>
+            </div>
+            <div v-if="duplicateSerialDevice" class="field-warning">
+              ⚠ {{ t.duplicateSerialFound }}
+              <button type="button" class="link" @click.prevent="openDetails(duplicateSerialDevice.id)">{{ t.viewDevice }}</button>
+            </div>
+            <div v-if="errors.serial" class="form-error">{{ errors.serial }}</div>
+          </div>
+
+          <fieldset class="form-section">
+            <legend class="form-legend">{{ t.sentBySection }}</legend>
+            <div class="form-group">
+              <label class="form-label">{{ t.senderName }} *</label>
+              <input v-model="form.sentByName" class="input" type="text" :placeholder="t.senderNamePlaceholder">
+              <div v-if="errors.sentByName" class="form-error">{{ errors.sentByName }}</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">{{ t.senderPhone }} ({{ t.optional }})</label>
+              <input v-model="form.sentByPhone" class="input input-mono" type="tel" :placeholder="t.senderPhonePlaceholder">
+              <div v-if="errors.sentByPhone" class="form-error">{{ errors.sentByPhone }}</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">{{ t.senderSocial }} ({{ t.optional }})</label>
+              <input v-model="form.sentBySocial" class="input input-mono" type="url" :placeholder="t.senderSocialPlaceholder">
+              <div v-if="errors.sentBySocial" class="form-error">{{ errors.sentBySocial }}</div>
+            </div>
+          </fieldset>
+
+          <div class="form-group">
+            <label class="form-label">{{ t.notes }} ({{ t.optional }})</label>
+            <textarea v-model="form.notes" class="input" rows="2"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">{{ t.image }} ({{ t.optional }})</label>
+            <div class="dropzone" :class="{dragover:dropzoneActive}" @click="$refs.fileInputAdd.click()" @dragover.prevent="dropzoneActive=true" @dragleave.prevent="dropzoneActive=false" @drop.prevent="onDropAdd">
+              <div class="dz-icon">+</div>
+              <div class="dz-primary">{{ t.uploadHere }}</div>
+              <div class="dz-secondary">{{ t.orClickToBrowse }}</div>
+              <div class="dz-hint">{{ t.imageFormats }} · {{ t.maxSize }}</div>
+              <input ref="fileInputAdd" class="hidden" type="file" accept="image/*" @change="onFileChange">
+            </div>
+            <div v-if="form.imagePreview" class="image-preview">
+              <img :src="form.imagePreview" alt="">
+              <button type="button" class="link link-danger" @click="form.imagePreview=null">{{ t.remove }}</button>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary" :disabled="saving">
+              <span v-if="saving" class="spinner"></span>{{ saving?t.saving:t.saveDevice }}
+            </button>
+            <button type="button" class="btn btn-ghost" @click="cancelAddDevice">{{ t.cancel }}</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- ============ DETAILS ============ -->
+      <section v-if="page==='details'&&selected" class="page">
+        <header class="page-header">
+          <div>
+            <a class="back-link" @click.prevent="navigateTo('all-devices')" href="#">{{ t.back }}</a>
+            <h1 class="page-title">{{ t.deviceDetails }}</h1>
+            <p class="page-subtitle mono">{{ selected.imei }} / {{ selected.serial }}</p>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-ghost" @click="printDetails">{{ t.print }}</button>
+            <button class="btn btn-danger-outline" @click="deleteDevice(selected.id)">{{ t.deleteDevice }}</button>
+          </div>
+        </header>
+
+        <div class="details-grid">
+          <div class="details-main">
+            <div class="card">
+              <h2 class="card-title">{{ t.information }}</h2>
+              <dl class="info-grid">
+                <div><dt>{{ t.imei }}</dt><dd class="mono">{{ selected.imei }}</dd></div>
+                <div><dt>{{ t.serial }}</dt><dd class="mono">{{ selected.serial }}</dd></div>
+                <div><dt>{{ t.senderName }}</dt><dd>{{ selected.sentByName }}</dd></div>
+                <div><dt>{{ t.senderPhone }}</dt><dd>
+                  <a v-if="selected.sentByPhone" :href="'tel:'+selected.sentByPhone" class="link mono">{{ selected.sentByPhone }}</a>
+                  <span v-else class="text-dim">—</span>
+                </dd></div>
+                <div class="col-span-2"><dt>{{ t.senderSocial }}</dt><dd class="break-all">
+                  <a v-if="selected.sentBySocial" :href="selected.sentBySocial" target="_blank" class="link">{{ selected.sentBySocial }}</a>
+                  <span v-else class="text-dim">—</span>
+                </dd></div>
+                <div v-if="selected.notes" class="col-span-2"><dt>{{ t.notes }}</dt><dd>{{ selected.notes }}</dd></div>
+                <div><dt>{{ t.uploadDate }}</dt><dd>{{ fmtDate(selected.uploadDate) }}</dd></div>
+                <div><dt>{{ t.doneDate }}</dt><dd>{{ selected.doneDate ? fmtDate(selected.doneDate) : '—' }}</dd></div>
+                <div><dt>{{ t.status }}</dt><dd><status-badge :status="selected.status" :label="statusLabel(selected.status)"/></dd></div>
+              </dl>
+            </div>
+
+            <div class="card">
+              <h2 class="card-title">{{ t.updateStatus }}</h2>
+              <div class="status-buttons">
+                <button v-for="s in statuses" :key="s.value" class="status-btn" :class="{active:selected.status===s.value}" :disabled="busy" @click="updateStatus(s.value)">{{ s.label }}</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2 class="card-title">{{ t.images }}</h2>
+              <div v-if="selected.images&&selected.images.length" class="images-grid">
+                <div v-for="(img,i) in selected.images" :key="i" class="image-tile">
+                  <img :src="img" alt="">
+                  <button class="image-remove" :disabled="busy" @click="removeImage(i)">×</button>
+                </div>
+              </div>
+              <p v-else class="text-dim text-sm mb-4">{{ t.noImages }}</p>
+
+              <div class="dropzone" :class="{dragover:dropzoneActiveDetails}" @click="$refs.fileInputDetails.click()" @dragover.prevent="dropzoneActiveDetails=true" @dragleave.prevent="dropzoneActiveDetails=false" @drop.prevent="onDropDetails">
+                <div class="dz-icon">+</div>
+                <div class="dz-primary">{{ t.uploadHere }}</div>
+                <div class="dz-secondary">{{ t.orClickToBrowse }}</div>
+                <input ref="fileInputDetails" class="hidden" type="file" accept="image/*" @change="onDetailsFileChange">
+              </div>
+            </div>
+
+            <div class="card">
+              <h2 class="card-title">{{ t.activityLog }}</h2>
+              <div v-if="activityLog.length" class="activity-list">
+                <div v-for="(e,i) in activityLog" :key="i" class="activity-item">
+                  <span class="activity-date mono">{{ e.date }}</span>
+                  <span>{{ e.text }}</span>
+                </div>
+              </div>
+              <p v-else class="text-dim text-sm">{{ t.noActivity }}</p>
+            </div>
+          </div>
+
+          <aside class="details-side">
+            <div class="card">
+              <h3 class="card-title-sm">{{ t.timeline }}</h3>
+              <div class="timeline mono text-xs">
+                <div>{{ t.created }}: {{ fmtDate(selected.uploadDate) }}</div>
+                <div>{{ t.updated }}: {{ fmtDate(selected.updatedAtRaw || selected.uploadDate) }}</div>
+                <div v-if="selected.doneDate">{{ t.done }}: {{ fmtDate(selected.doneDate) }}</div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ============ SETTINGS ============ -->
+      <section v-if="page==='settings'" class="page">
+        <header class="page-header">
+          <div>
+            <h1 class="page-title">{{ t.settings }}</h1>
+            <p class="page-subtitle">{{ t.settingsSub }}</p>
+          </div>
+        </header>
+
+        <div class="settings-stack">
+          <div class="card">
+            <h2 class="card-title">{{ t.connection }}</h2>
+            <p class="card-subtitle">{{ t.connectionSub }}</p>
+            <div class="text-sm mono">
+              <div>Project: <strong>pqzqlnnngbdmfcafftol</strong></div>
+              <div>Status: <strong :class="connState.class">{{ connState.label }}</strong></div>
+              <div>Bucket: <strong>device-images</strong></div>
+              <div>Origin: <strong>{{ originInfo }}</strong></div>
+            </div>
+            <div class="flex gap-2 mt-3">
+              <button class="btn btn-ghost" @click="loadAll" :disabled="loading">{{ t.refresh }}</button>
+              <button class="btn btn-ghost" :disabled="migrating" @click="migrateFromLocal">{{ migrating?t.migrating:t.migrate }}</button>
+            </div>
+            <div v-if="!isHttp" class="alert alert-warning mt-3" style="margin-bottom:0">
+              <span>⚠ {{ t.fileProtocolWarn }}</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2 class="card-title">{{ t.pageVisibility }}</h2>
+            <p class="card-subtitle">{{ t.pageVisibilitySub }}</p>
+            <div class="settings-list">
+              <label v-for="item in pageFeatures" :key="item.key" class="setting-row">
+                <div><div class="setting-label">{{ item.label }}</div><div class="setting-desc">{{ item.desc }}</div></div>
+                <input type="checkbox" class="toggle-checkbox" :checked="features[item.key]!==false" @change="toggleFeature(item.key,$event.target.checked)">
+              </label>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2 class="card-title">{{ t.featureToggles }}</h2>
+            <p class="card-subtitle">{{ t.featureTogglesSub }}</p>
+            <div class="settings-list">
+              <label v-for="item in featureToggles" :key="item.key" class="setting-row">
+                <div><div class="setting-label">{{ item.label }}</div><div class="setting-desc">{{ item.desc }}</div></div>
+                <input type="checkbox" class="toggle-checkbox" :checked="features[item.key]!==false" @change="toggleFeature(item.key,$event.target.checked)">
+              </label>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2 class="card-title">{{ t.fontPrefs }}</h2>
+            <p class="card-subtitle">{{ t.fontPrefsSub }}</p>
+            <label class="setting-row">
+              <div><div class="setting-label">{{ t.useCairoInEnglish }}</div><div class="setting-desc">{{ t.useCairoInEnglishDesc }}</div></div>
+              <input type="checkbox" class="toggle-checkbox" :checked="useCairoInEnglish" @change="setCairoEnglish($event.target.checked)">
+            </label>
+          </div>
+
+          <div class="card">
+            <h2 class="card-title">{{ t.agingThreshold }}</h2>
+            <p class="card-subtitle">{{ t.agingThresholdSub }}</p>
+            <div class="flex items-center gap-3">
+              <input v-model.number="prefs.agingDays" class="input input-sm w-24" type="number" min="1" max="90">
+              <span class="text-sm text-dim">{{ t.days }}</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2 class="card-title">{{ t.dataMgmt }}</h2>
+            <p class="card-subtitle">{{ t.dataMgmtSub }}</p>
+            <div class="flex flex-col gap-2">
+              <button class="btn btn-ghost text-start" @click="exportBackup">{{ t.backupAll }}</button>
+              <label class="btn btn-ghost text-start cursor-pointer">
+                {{ t.restoreBackup }}
+                <input class="hidden" type="file" accept=".json" @change="restoreBackup">
+              </label>
+            </div>
+          </div>
+
+          <div class="card card-danger">
+            <h2 class="card-title text-danger">{{ t.dangerZone }}</h2>
+            <p class="card-subtitle">{{ t.resetAllDesc }}</p>
+            <button class="btn btn-danger-outline" :disabled="busy" @click="resetAll">{{ t.resetAll }}</button>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Scanner -->
+  <div v-if="scanner.open" class="modal-bg" @click.self="closeScanner">
+    <div class="modal-card">
+      <div class="modal-header"><h3>{{ t.scanTitle }}</h3><button class="modal-close" @click="closeScanner">×</button></div>
+      <div id="qr-reader" class="qr-reader"></div>
+      <p class="text-xs text-dim mt-2">{{ t.scanHint }}</p>
+      <input v-model="scanner.manual" class="input input-mono mt-3" type="text" :placeholder="t.manualEntry" @keydown.enter="onScanSuccess(scanner.manual)">
+    </div>
+  </div>
+
+  <!-- Import -->
+  <div v-if="importModal.open" class="modal-bg" @click.self="importModal.open=false">
+    <div class="modal-card modal-large">
+      <div class="modal-header"><h3>{{ t.importTitle }}</h3><button class="modal-close" @click="importModal.open=false">×</button></div>
+      <div class="info-box">
+        <div class="info-box-content">
+          <div class="info-box-title">{{ t.firstTime }}</div>
+          <div class="info-box-text">{{ t.templateExplain }}</div>
+          <div class="info-box-code mono">IMEI | Serial | Sent By | Phone</div>
+        </div>
+        <button class="btn btn-primary btn-sm" @click="downloadTemplate">{{ t.downloadTemplate }}</button>
+      </div>
+      <div class="modal-section">
+        <div class="modal-section-label">{{ t.exampleData }}</div>
+        <div class="example-table-wrapper">
+          <table class="data-table">
+            <thead><tr><th>IMEI</th><th>Serial</th><th>Sent By</th><th>Phone</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">358941078234561</td><td class="mono">LN9028441Z</td><td>Global Logistics Co.</td><td class="mono">+20 100 555 7788</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-section">
+        <div class="modal-section-label">{{ t.uploadFile }}</div>
+        <div class="dropzone" :class="{dragover:importDropzoneActive}" @click="$refs.fileInputImport.click()" @dragover.prevent="importDropzoneActive=true" @dragleave.prevent="importDropzoneActive=false" @drop.prevent="onDropImport">
+          <div class="dz-icon">+</div>
+          <div class="dz-primary">{{ t.dropExcelHere }}</div>
+          <div class="dz-secondary">{{ t.orClickToBrowse }} — .xlsx, .xls, .csv</div>
+          <input ref="fileInputImport" class="hidden" type="file" accept=".csv,.xlsx,.xls" @change="handleImportFile">
+        </div>
+      </div>
+      <div v-if="importModal.rows.length" class="modal-section">
+        <div class="modal-section-label">{{ t.importPreview.replace('{n}',importModal.rows.length) }}</div>
+        <div class="preview-table-wrapper">
+          <table class="data-table">
+            <thead><tr><th>IMEI</th><th>Serial</th><th>Sent By</th><th>Phone</th><th></th></tr></thead>
+            <tbody>
+              <tr v-for="(row,i) in importModal.rows.slice(0,50)" :key="i" :class="{'row-muted':row.dup}">
+                <td class="mono">{{ row.imei }}</td><td class="mono">{{ row.serial }}</td>
+                <td>{{ row.sentByName }}</td><td class="mono">{{ row.sentByPhone }}</td>
+                <td class="text-center"><span v-if="row.dup" class="dup-icon">⚠</span><span v-else class="ok-icon">✓</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-primary" :disabled="busy" @click="confirmImport"><span v-if="busy" class="spinner"></span>{{ t.importConfirm }}</button>
+          <button class="btn btn-ghost" @click="importModal={open:true,rows:[]}">{{ t.cancel }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk Delete -->
+  <div v-if="bulkDeleteModal.open" class="modal-bg" @click.self="bulkDeleteModal.open=false">
+    <div class="modal-card">
+      <div class="modal-header"><h3 class="text-danger">{{ t.bulkDeleteTitle }}</h3><button class="modal-close" @click="bulkDeleteModal.open=false">×</button></div>
+      <p class="text-sm text-dim mb-4">{{ t.bulkDeleteDesc }}</p>
+      <div class="form-group">
+        <label class="form-label">{{ t.bulkDeleteRange }}</label>
+        <select v-model="bulkDeleteModal.range" class="input">
+          <option value="1">{{ t.lastDay }}</option>
+          <option value="7">{{ t.lastWeek }}</option>
+          <option value="30">{{ t.lastMonth }}</option>
+          <option value="90">{{ t.last3Months }}</option>
+          <option value="all">{{ t.allTime }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">{{ t.bulkDeleteStatus }}</label>
+        <select v-model="bulkDeleteModal.status" class="input">
+          <option value="all">{{ t.fAll }}</option>
+          <option v-for="s in statuses" :key="s.value" :value="s.value">{{ s.label }}</option>
+        </select>
+      </div>
+      <div class="alert alert-danger">
+        <div>{{ t.bulkDeleteWarning.replace('{n}',bulkDeleteCount) }}</div>
+        <div v-if="bulkDeleteCount>0" class="text-xs text-dim mt-1">{{ t.imeis }}: {{ bulkDeletePreview }}</div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-danger" :disabled="bulkDeleteCount===0||busy" @click="confirmBulkDelete"><span v-if="busy" class="spinner"></span>{{ t.confirmDelete }}</button>
+        <button class="btn btn-ghost" @click="bulkDeleteModal.open=false">{{ t.cancel }}</button>
+      </div>
+    </div>
+  </div>
+
+  <div v-if="toast" class="toast" :class="'toast-'+(toast.type==='error'?'error':toast.type==='info'?'info':'success')">
+    <span>{{ toast.message }}</span>
+  </div>
+
+</div>
+
+<script type="text/x-template" id="status-badge-tpl">
+  <span class="badge" :class="'badge-'+status">{{ label }}</span>
+</script>
+
+<script>
+/* =====================================================================
+   WAREHOUSE OS — SUPABASE EDITION (v5.0.1)
+   ---------------------------------------------------------------------
+   FIXES in this version:
+     • Renamed our client var to `sb` — the supabase-js UMD build already
+       declares a top-level `supabase`, so `const supabase = ...` threw
+       "Identifier 'supabase' has already been declared".
+     • Added file:// detection + warning in Settings.
+     • Wrapped everything in an IIFE to avoid future global leaks.
+
+   REQUIRED SUPABASE SETUP (one-time):
+   ---------------------------------------------------------------------
+   -- 1. Tables + RLS + policies (SQL Editor):
+   CREATE TABLE IF NOT EXISTS devices (
+     id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+     imei TEXT NOT NULL UNIQUE,
+     serial TEXT NOT NULL UNIQUE,
+     sent_by_name TEXT NOT NULL,
+     sent_by_phone TEXT,
+     sent_by_social TEXT,
+     notes TEXT,
+     status TEXT NOT NULL DEFAULT 'pending'
+       CHECK (status IN ('pending','processing','done','rejected')),
+     upload_date TIMESTAMPTZ DEFAULT NOW(),
+     done_date TIMESTAMPTZ,
+     created_at TIMESTAMPTZ DEFAULT NOW(),
+     updated_at TIMESTAMPTZ DEFAULT NOW()
+   );
+   CREATE TABLE IF NOT EXISTS device_images (
+     id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+     device_id BIGINT REFERENCES devices(id) ON DELETE CASCADE,
+     image_url TEXT NOT NULL,
+     uploaded_at TIMESTAMPTZ DEFAULT NOW()
+   );
+   ALTER TABLE devices ENABLE ROW LEVEL SECURITY;
+   ALTER TABLE device_images ENABLE ROW LEVEL SECURITY;
+   CREATE POLICY "Allow all" ON devices FOR ALL USING (true) WITH CHECK (true);
+   CREATE POLICY "Allow all" ON device_images FOR ALL USING (true) WITH CHECK (true);
+
+   -- 2. Storage bucket:
+   --    Create a PUBLIC bucket named "device-images".
+   --    Add policies for SELECT/INSERT/UPDATE/DELETE with:
+   --      bucket_id = 'device-images'
+
+   -- 3. Run the page over HTTP(S) — not file://
+   --    e.g.  python -m http.server 8000
+   ===================================================================== */
+(function () {
+  'use strict';
+
+  const { createApp, nextTick } = Vue;
+
+  const SUPABASE_URL = 'https://pqzqlnnngbdmfcafftol.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxenFsbm5uZ2JkbWZjYWZmdG9sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIyODczMjcsImV4cCI6MjEwNzg2MzMyN30.VA5_4CgbHXQA49VQ3rtXMpkJxLBV-uQOeP4yZiF_NQk';
+
+  // ⚠ IMPORTANT: the UMD build of supabase-js already exposes a global
+  // `supabase`. Do NOT redeclare it. We name our client `sb`.
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { persistSession: false },
+  });
+
+  const BUCKET = 'device-images';
+  const IS_HTTP = location.protocol === 'http:' || location.protocol === 'https:';
+
+  /* ======================== I18N ======================== */
+  const I18N = {
+    en: {
+      appName:'Warehouse OS', navDashboard:'Dashboard', navAllDevices:'All Devices', navAddDevice:'Add Device', navSettings:'Settings',
+      overview:'Warehouse Overview', overviewSub:'Real-time device processing status and inventory metrics.',
+      addDevice:'Add Device', totalDevices:'Total Devices', pending:'Not Entered', processing:'Processing', done:'Done', rejected:'Rejected',
+      recentDevices:'Recent Devices', viewAll:'View All', last7Days:'Last 7 Days — Completed', devicesCompleted:'devices completed',
+      max:'Peak', devicesShort:'devices',
+      colImage:'Image', colImei:'IMEI', colSerial:'Serial', colImeiSerial:'IMEI / Serial',
+      colSentBy:'Sent By', colDate:'Date', colUploadDate:'Upload Date', colStatus:'Status', colActions:'Actions',
+      view:'View', delete:'Delete', noDevices:'No devices. Click "Add Device".',
+      allDevices:'All Devices', allDevicesSub:'Search, filter, sort, and manage every registered device.',
+      searchPlaceholder:'Search by IMEI, Serial, or Sender...', noMatch:'No devices match your search or filter.',
+      addDeviceSub:'Register a new device into the warehouse system.',
+      imei:'IMEI', imeiPlaceholder:'15-digit IMEI', imeiHint:'Example valid IMEI: 358941078234561',
+      imeiValid:'Valid IMEI (15 digits, Luhn OK)',
+      imeiInvalidLength:'Must be exactly 15 digits',
+      imeiInvalidLuhn:'Luhn check failed — check digit is wrong',
+      imeiInvalidDigits:'Only digits allowed',
+      duplicateImeiFound:'This IMEI already exists in the system',
+      duplicateSerialFound:'This Serial already exists in the system',
+      duplicate:'Duplicate', viewDevice:'View device →',
+      serial:'Serial Number', serialPlaceholder:'e.g. LN9028441Z',
+      sentBySection:'Sender Information', senderName:'Sender Name', senderNamePlaceholder:'e.g. Daniel Miller',
+      senderPhone:'Phone Number', senderPhonePlaceholder:'e.g. +20 100 555 7788',
+      senderSocial:'Social Media Link', senderSocialPlaceholder:'https://facebook.com/username',
+      optional:'optional', image:'Image', remove:'Remove', saving:'Saving...', saveDevice:'Save Device', cancel:'Cancel',
+      deviceDetails:'Device Details', back:'← Back', deleteDevice:'Delete Device', information:'Information',
+      uploadDate:'Upload Date', doneDate:'Done Date', status:'Status', updateStatus:'Update Status', images:'Images',
+      noImages:'No images.', timeline:'Timeline', created:'Created', updated:'Updated', records:'records',
+      from:'From', to:'To', clear:'Clear', today:'Today', last7:'7d', last30:'30d', perPage:'Per page',
+      export:'Export CSV', import:'Import', scan:'Scan', notes:'Notes',
+      scanTitle:'Scan Barcode / QR', scanHint:'Point camera at barcode. Manual entry below if unavailable.',
+      manualEntry:'Or type manually…', importTitle:'Import from Excel/CSV',
+      importPreview:'Preview ({n} rows detected):', importConfirm:'Confirm Import',
+      activityLog:'Activity Log', noActivity:'No activity yet.', print:'Print',
+      agingAlert:'{n} device(s) processing for more than {d} days', vsYesterday:'vs yesterday',
+      draftRestored:'Draft restored from your last session.',
+      selectedN:'{n} selected', showing:'Showing', of:'of', undo:'Undo', lightMode:'Light Mode', darkMode:'Dark Mode',
+      required:'Required', invalidImei:'Invalid IMEI', imeiExists:'IMEI already exists',
+      serialExists:'Serial already exists', invalidPhone:'Invalid phone', invalidUrl:'Invalid URL (https://)',
+      fixErrors:'Please fix the errors', saved:'Device saved', statusUpdated:'Status updated',
+      deleted:'Device deleted', imageAdded:'Image added', imageRemoved:'Image removed',
+      onlyImages:'Only images allowed', maxSize:'Max 5 MB', confirmDelete:'Delete this device?',
+      confirmBulkDelete:'Delete {n} device(s)?', importSkipped:'{n} rows skipped (invalid IMEI)', importDone:'{n} devices imported',
+      sPending:'Not Entered', sProcessing:'Under Processing', sDone:'Done', sRejected:'Rejected', fAll:'All',
+      locale:'en-GB',
+      settings:'Settings', settingsSub:'Control application features, pages, and preferences.',
+      connection:'Supabase Connection', connectionSub:'Cloud database + storage status.',
+      pageVisibility:'Page Visibility', pageVisibilitySub:'Show or hide pages from the sidebar navigation.',
+      featureToggles:'Feature Toggles', featureTogglesSub:'Enable or disable specific features across the app.',
+      fontPrefs:'Font Preferences', fontPrefsSub:'Choose fonts used across the application.',
+      dataMgmt:'Data Management', dataMgmtSub:'Backup, restore, or reset your data.',
+      dangerZone:'Danger Zone',
+      useCairoInEnglish:'Use Cairo font in English', useCairoInEnglishDesc:'Apply Cairo font for English text as well.',
+      agingThreshold:'Aging threshold (days)', agingThresholdSub:'Alert when devices stay "Processing" longer than this.',
+      days:'days', backupAll:'Backup all devices (JSON)', restoreBackup:'Restore from backup',
+      resetAll:'Reset All Data', resetAllDesc:'Deletes ALL devices from Supabase. Cannot be undone.',
+      descDashboard:'Main overview page with stats and recent devices.',
+      descAllDevices:'Table with search, filters, and bulk actions.',
+      descAddDevice:'Form to register a new device.',
+      descSettings:'This settings page.',
+      descTrends:'Show ▲▼ percentage change indicators on stat cards.',
+      descSparkline:'Show the 7-day bar chart on the dashboard.',
+      descAgingAlert:'Show warning banner for devices stuck in processing.',
+      descScanner:'Enable barcode/QR scanning on IMEI/Serial fields.',
+      descImport:'Enable Excel/CSV bulk import.',
+      descExport:'Enable CSV export of device list.',
+      descBulkDelete:'Enable bulk delete by time-range and status filter.',
+      uploadHere:'Drop image here or click to browse', orClickToBrowse:'or click to browse',
+      imageFormats:'PNG, JPG, WEBP, GIF', maxSize:'Max 5 MB',
+      firstTime:'First time importing?', templateExplain:'Download the template, fill it in Excel, then upload it here. Column headers must match exactly.',
+      downloadTemplate:'Download Template', exampleData:'Example data',
+      uploadFile:'Upload file', dropExcelHere:'Drop Excel/CSV here',
+      bulkDeleteBtn:'Bulk Delete by Filter', bulkDeleteTitle:'Bulk Delete by Filter',
+      bulkDeleteDesc:'Choose a time range and status — matching devices will be deleted permanently.',
+      bulkDeleteRange:'Time range', bulkDeleteStatus:'Status filter',
+      lastDay:'Last 24 hours', lastWeek:'Last 7 days', lastMonth:'Last 30 days', last3Months:'Last 90 days', allTime:'All time',
+      bulkDeleteWarning:'{n} device(s) will be permanently deleted.', imeis:'IMEIs',
+      refresh:'Refresh', retry:'Retry', loading:'Loading…', migrating:'Migrating…', migrate:'Migrate local data →',
+      online:'● Online', offline:'● Offline', syncing:'● Syncing…',
+      loadFailed:'Failed to load data', saveFailed:'Failed to save', deleteFailed:'Failed to delete',
+      uploadFailed:'Failed to upload image', migrationDone:'Migrated {n} devices', noLocalData:'No local data to migrate',
+      resetDone:'All data reset', resetConfirm:'Delete ALL devices from Supabase? This cannot be undone.',
+      fileProtocolWarn:'Running from file:// — Supabase Storage uploads may fail. Serve over HTTP (e.g. python -m http.server) for full functionality.',
+    },
+    ar: {
+      appName:'نظام المستودع', navDashboard:'لوحة التحكم', navAllDevices:'كل الأجهزة', navAddDevice:'إضافة جهاز', navSettings:'الإعدادات',
+      overview:'نظرة عامة على المستودع', overviewSub:'حالة معالجة الأجهزة ومؤشرات المخزون لحظيًا.',
+      addDevice:'إضافة جهاز', totalDevices:'إجمالي الأجهزة', pending:'غير مُدخلة', processing:'قيد المعالجة', done:'مكتملة', rejected:'مرفوضة',
+      recentDevices:'أحدث الأجهزة', viewAll:'عرض الكل', last7Days:'آخر 7 أيام — مكتملة', devicesCompleted:'جهاز مكتمل',
+      max:'الأعلى', devicesShort:'جهاز',
+      colImage:'الصورة', colImei:'IMEI', colSerial:'التسلسلي', colImeiSerial:'IMEI / التسلسلي',
+      colSentBy:'مُرسَل بواسطة', colDate:'التاريخ', colUploadDate:'تاريخ الرفع', colStatus:'الحالة', colActions:'إجراءات',
+      view:'عرض', delete:'حذف', noDevices:'لا توجد أجهزة. اضغط "إضافة جهاز".',
+      allDevices:'كل الأجهزة', allDevicesSub:'ابحث، صفِّ، رتّب، وأدر كل الأجهزة المسجلة.',
+      searchPlaceholder:'ابحث بـ IMEI أو التسلسلي أو المُرسِل...', noMatch:'لا توجد أجهزة مطابقة.',
+      addDeviceSub:'تسجيل جهاز جديد في النظام.',
+      imei:'IMEI', imeiPlaceholder:'15 رقم', imeiHint:'مثال IMEI صحيح: 358941078234561',
+      imeiValid:'IMEI صحيح (15 رقم، Luhn سليم)',
+      imeiInvalidLength:'لازم 15 رقم بالظبط',
+      imeiInvalidLuhn:'فحص Luhn فشل — رقم التحقق غلط',
+      imeiInvalidDigits:'أرقام فقط مسموحة',
+      duplicateImeiFound:'هذا الـ IMEI موجود بالفعل في النظام',
+      duplicateSerialFound:'هذا التسلسلي موجود بالفعل في النظام',
+      duplicate:'مكرر', viewDevice:'عرض الجهاز →',
+      serial:'الرقم التسلسلي', serialPlaceholder:'مثال: LN9028441Z',
+      sentBySection:'بيانات المُرسِل', senderName:'اسم المُرسِل', senderNamePlaceholder:'مثال: دانيال ميلر',
+      senderPhone:'رقم التليفون', senderPhonePlaceholder:'مثال: +20 100 555 7788',
+      senderSocial:'رابط السوشيال ميديا', senderSocialPlaceholder:'https://facebook.com/username',
+      optional:'اختياري', image:'الصورة', remove:'إزالة', saving:'جارٍ الحفظ...', saveDevice:'حفظ', cancel:'إلغاء',
+      deviceDetails:'تفاصيل الجهاز', back:'→ رجوع', deleteDevice:'حذف الجهاز', information:'المعلومات',
+      uploadDate:'تاريخ الرفع', doneDate:'تاريخ الاكتمال', status:'الحالة', updateStatus:'تحديث الحالة', images:'الصور',
+      noImages:'لا توجد صور.', timeline:'الخط الزمني', created:'أُنشئ', updated:'حُدِّث', records:'سجل',
+      from:'من', to:'إلى', clear:'مسح', today:'اليوم', last7:'7 أيام', last30:'30 يوم', perPage:'لكل صفحة',
+      export:'تصدير CSV', import:'استيراد', scan:'مسح', notes:'ملاحظات',
+      scanTitle:'مسح باركود / QR', scanHint:'وجّه الكاميرا للباركود. استخدم الإدخال اليدوي لو الكاميرا مش متاحة.',
+      manualEntry:'أو اكتب يدويًا…', importTitle:'استيراد من Excel/CSV',
+      importPreview:'معاينة ({n} صف):', importConfirm:'تأكيد الاستيراد',
+      activityLog:'سجل النشاط', noActivity:'لا يوجد نشاط.', print:'طباعة',
+      agingAlert:'{n} جهاز قيد المعالجة أكثر من {d} يوم', vsYesterday:'عن أمس',
+      draftRestored:'تم استرجاع مسودتك السابقة.',
+      selectedN:'{n} محدد', showing:'عرض', of:'من', undo:'تراجع', lightMode:'الوضع الفاتح', darkMode:'الوضع الداكن',
+      required:'مطلوب', invalidImei:'IMEI غير صحيح', imeiExists:'IMEI موجود بالفعل',
+      serialExists:'التسلسلي موجود بالفعل', invalidPhone:'رقم غير صالح', invalidUrl:'رابط غير صالح (https://)',
+      fixErrors:'صحح الأخطاء', saved:'تم الحفظ', statusUpdated:'تم تحديث الحالة',
+      deleted:'تم الحذف', imageAdded:'تمت الإضافة', imageRemoved:'تمت الإزالة',
+      onlyImages:'صور فقط', maxSize:'5 MB كحد أقصى', confirmDelete:'حذف هذا الجهاز؟',
+      confirmBulkDelete:'حذف {n} جهاز؟', importSkipped:'تم تخطي {n} صف (IMEI غير صالح)', importDone:'تم استيراد {n} جهاز',
+      sPending:'غير مُدخلة', sProcessing:'قيد المعالجة', sDone:'مكتملة', sRejected:'مرفوضة', fAll:'الكل',
+      locale:'ar-EG',
+      settings:'الإعدادات', settingsSub:'تحكم في صفحات وخصائص الموقع والتفضيلات.',
+      connection:'اتصال Supabase', connectionSub:'حالة قاعدة البيانات والتخزين السحابي.',
+      pageVisibility:'إظهار / إخفاء الصفحات', pageVisibilitySub:'اظهر أو اخفي الصفحات من الـ sidebar.',
+      featureToggles:'تشغيل / إيقاف الخصائص', featureTogglesSub:'شغّل أو اقفل خصائص محددة في الموقع.',
+      fontPrefs:'تفضيلات الخط', fontPrefsSub:'اختر الخطوط المستخدمة في الموقع.',
+      dataMgmt:'إدارة البيانات', dataMgmtSub:'نسخ احتياطي، استرجاع، أو إعادة تعيين.',
+      dangerZone:'منطقة الخطر',
+      useCairoInEnglish:'استخدام خط Cairo في الإنجليزي', useCairoInEnglishDesc:'تطبيق خط Cairo على النص الإنجليزي أيضًا.',
+      agingThreshold:'حد التنبيه بالأيام', agingThresholdSub:'نبّه لما يفضل الجهاز "قيد المعالجة" أكتر من كذا يوم.',
+      days:'أيام', backupAll:'نسخة احتياطية من كل الأجهزة (JSON)', restoreBackup:'استرجاع من نسخة',
+      resetAll:'إعادة تعيين كل البيانات', resetAllDesc:'يحذف كل الأجهزة من Supabase. لا يمكن التراجع.',
+      descDashboard:'الصفحة الرئيسية مع الإحصائيات والأجهزة الحديثة.',
+      descAllDevices:'جدول فيه بحث، فلاتر، وإجراءات جماعية.',
+      descAddDevice:'نموذج تسجيل جهاز جديد.',
+      descSettings:'صفحة الإعدادات هذه.',
+      descTrends:'عرض مؤشرات التغيير ▲▼ على بطاقات الإحصائيات.',
+      descSparkline:'عرض رسم بياني شريطي لآخر 7 أيام.',
+      descAgingAlert:'عرض تنبيه للأجهزة العالقة في المعالجة.',
+      descScanner:'تفعيل مسح الباركود/QR لحقول IMEI والتسلسلي.',
+      descImport:'تفعيل الاستيراد الجماعي من Excel/CSV.',
+      descExport:'تفعيل تصدير CSV لقائمة الأجهزة.',
+      descBulkDelete:'تفعيل الحذف الجماعي بالفلتر الزمني والحالة.',
+      uploadHere:'اسحب الصورة هنا أو اضغط للاختيار', orClickToBrowse:'أو اضغط للاختيار',
+      imageFormats:'PNG, JPG, WEBP, GIF', maxSize:'5 MB كحد أقصى',
+      firstTime:'أول مرة تستورد؟', templateExplain:'نزّل النموذج، املأه في Excel، ثم ارفعه هنا. أسماء الأعمدة لازم تكون مطابقة تمامًا.',
+      downloadTemplate:'تحميل النموذج', exampleData:'مثال على البيانات',
+      uploadFile:'ارفع الملف', dropExcelHere:'اسحب ملف Excel/CSV هنا',
+      bulkDeleteBtn:'حذف بالفلتر', bulkDeleteTitle:'حذف بالفلتر',
+      bulkDeleteDesc:'اختر فترة زمنية وحالة — الأجهزة المطابقة هتتحذف نهائيًا.',
+      bulkDeleteRange:'الفترة الزمنية', bulkDeleteStatus:'فلتر الحالة',
+      lastDay:'آخر 24 ساعة', lastWeek:'آخر 7 أيام', lastMonth:'آخر 30 يوم', last3Months:'آخر 90 يوم', allTime:'كل الوقت',
+      bulkDeleteWarning:'هيتم حذف {n} جهاز نهائيًا.', imeis:'أرقام IMEI',
+      refresh:'تحديث', retry:'إعادة المحاولة', loading:'جارٍ التحميل…', migrating:'جارٍ الترحيل…', migrate:'ترحيل البيانات المحلية →',
+      online:'● متصل', offline:'● غير متصل', syncing:'● جارٍ المزامنة…',
+      loadFailed:'فشل تحميل البيانات', saveFailed:'فشل الحفظ', deleteFailed:'فشل الحذف',
+      uploadFailed:'فشل رفع الصورة', migrationDone:'تم ترحيل {n} جهاز', noLocalData:'لا توجد بيانات محلية للترحيل',
+      resetDone:'تم مسح كل البيانات', resetConfirm:'حذف كل الأجهزة من Supabase؟ لا يمكن التراجع.',
+      fileProtocolWarn:'تعمل من file:// — رفع الصور على Supabase Storage قد يفشل. شغّل الصفحة عبر HTTP (مثال: python -m http.server) لتعمل كل الميزات.',
+    }
+  };
+
+  /* ======================== HELPERS ======================== */
+  function fmt(input, locale) {
+    if (!input) return '';
+    const d = input instanceof Date ? input : new Date(input);
+    if (isNaN(d.getTime())) return String(input);
+    return d.toLocaleString(locale || 'en-GB', { year:'numeric', month:'short', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+  }
+  function luhnValid(num) {
+    const s = String(num).trim();
+    if (!/^\d{15}$/.test(s)) return false;
+    let sum = 0, alt = false;
+    for (let i = s.length - 1; i >= 0; i--) {
+      let d = parseInt(s[i], 10);
+      if (alt) { d *= 2; if (d > 9) d -= 9; }
+      sum += d; alt = !alt;
+    }
+    return sum % 10 === 0;
+  }
+  function csvCell(v) {
+    let t = String(v == null ? '' : v);
+    if (/^[=+\-@\t\r]/.test(t)) t = "'" + t;
+    return '"' + t.replace(/"/g, '""') + '"';
+  }
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  function normalize(s) { return String(s || '').replace(/[\s\-()]/g, '').toLowerCase(); }
+  function todayStr() { return new Date().toISOString().slice(0, 10); }
+  function uuid() {
+    return 'x'.repeat(8).replace(/x/g, () => ((Math.random() * 16) | 0).toString(16)) + '-' + Date.now().toString(36);
+  }
+  function rowToDevice(row) {
+    const imgs = Array.isArray(row.device_images)
+      ? row.device_images.slice().sort((a, b) => (a.id || 0) - (b.id || 0))
+      : [];
+    return {
+      id: row.id,
+      imei: row.imei,
+      serial: row.serial,
+      sentByName: row.sent_by_name || '',
+      sentByPhone: row.sent_by_phone || '',
+      sentBySocial: row.sent_by_social || '',
+      notes: row.notes || '',
+      status: row.status || 'pending',
+      uploadDate: row.upload_date || row.created_at,
+      doneDate: row.done_date,
+      createdAt: new Date(row.created_at || row.upload_date || Date.now()).getTime(),
+      updatedAtRaw: row.updated_at,
+      images: imgs.map(i => i.image_url).filter(Boolean),
+      imageRows: imgs,
+    };
+  }
+
+  const KEYS = {
+    draft: 'wh_os_draft_v1',
+    theme: 'wh_os_theme',
+    lang: 'wh_os_lang',
+    features: 'wh_os_features_v1',
+    prefs: 'wh_os_prefs_v1',
+    legacyDevices: 'wh_os_devices_v5',
+  };
+  const DEFAULT_FEATURES = {
+    dashboard: true, allDevices: true, addDevice: true, settings: true,
+    trends: true, sparkline: true, agingAlert: true, scanner: true,
+    importExcel: true, exportCsv: true, bulkDelete: true,
+  };
+  const DEFAULT_PREFS = { useCairoInEnglish: false, agingDays: 7 };
+
+  function loadStored(key, defaults) {
+    try {
+      const raw = localStorage.getItem(key);
+      const parsed = raw ? JSON.parse(raw) : null;
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return { ...defaults, ...parsed };
+    } catch (e) {}
+    return { ...defaults };
+  }
+
+  const StatusBadge = { template: '#status-badge-tpl', props: ['status', 'label'] };
+
+  createApp({
+    components: { StatusBadge },
+    data() {
+      return {
+        page: 'dashboard',
+        lang: localStorage.getItem(KEYS.lang) || 'en',
+        theme: localStorage.getItem(KEYS.theme) || 'dark',
+        devices: [],
+        features: loadStored(KEYS.features, DEFAULT_FEATURES),
+        prefs: loadStored(KEYS.prefs, DEFAULT_PREFS),
+
+        loading: false,
+        busy: false,
+        migrating: false,
+        connOk: true,
+        loadError: '',
+
+        search: '', statusFilter: 'all', dateFrom: '', dateTo: '',
+        sortBy: 'uploadDate', sortDir: 'desc',
+        currentPage: 1, pageSize: 25, selectedIds: [],
+        selected: null,
+
+        form: this.emptyForm(),
+        imeiStatus: { checked: false, valid: false, error: '' },
+        errors: {},
+        saving: false,
+        draftRestored: false,
+
+        toast: null, hoveredIdx: null,
+        dropzoneActive: false, dropzoneActiveDetails: false, importDropzoneActive: false,
+
+        scanner: { open: false, target: null, manual: '', instance: null },
+        importModal: { open: false, rows: [] },
+        bulkDeleteModal: { open: false, range: '7', status: 'all' },
+      };
+    },
+
+    computed: {
+      t() { return I18N[this.lang]; },
+      isHttp() { return IS_HTTP; },
+      originInfo() { return IS_HTTP ? location.origin : 'file:// (restricted)'; },
+
+      connState() {
+        if (this.loading) return { class: 'syncing', label: this.t.syncing };
+        if (!this.connOk) return { class: 'offline', label: this.t.offline };
+        return { class: 'online', label: this.t.online };
+      },
+
+      visibleNavItems() {
+        return [
+          { id: 'dashboard', label: this.t.navDashboard },
+          { id: 'all-devices', label: this.t.navAllDevices },
+          { id: 'add-device', label: this.t.navAddDevice },
+          { id: 'settings', label: this.t.navSettings },
+        ].filter(i => this.features[this.pageKeyFor(i.id)] !== false);
+      },
+
+      pageFeatures() {
+        return [
+          { key: 'dashboard', label: this.t.navDashboard, desc: this.t.descDashboard },
+          { key: 'allDevices', label: this.t.navAllDevices, desc: this.t.descAllDevices },
+          { key: 'addDevice', label: this.t.navAddDevice, desc: this.t.descAddDevice },
+          { key: 'settings', label: this.t.navSettings, desc: this.t.descSettings },
+        ];
+      },
+      featureToggles() {
+        return [
+          { key: 'trends', label: this.t.last7Days, desc: this.t.descTrends },
+          { key: 'sparkline', label: this.t.last7Days, desc: this.t.descSparkline },
+          { key: 'agingAlert', label: this.t.agingThreshold, desc: this.t.descAgingAlert },
+          { key: 'scanner', label: this.t.scan, desc: this.t.descScanner },
+          { key: 'importExcel', label: this.t.import, desc: this.t.descImport },
+          { key: 'exportCsv', label: this.t.export, desc: this.t.descExport },
+          { key: 'bulkDelete', label: this.t.bulkDeleteBtn, desc: this.t.descBulkDelete },
+        ];
+      },
+
+      statuses() {
+        return [
+          { value: 'pending', label: this.t.sPending },
+          { value: 'processing', label: this.t.sProcessing },
+          { value: 'done', label: this.t.sDone },
+          { value: 'rejected', label: this.t.sRejected },
+        ];
+      },
+      statusFilters() { return [{ value: 'all', label: this.t.fAll }, ...this.statuses]; },
+      datePresets() {
+        return [
+          { days: 1, label: this.t.today },
+          { days: 7, label: this.t.last7 },
+          { days: 30, label: this.t.last30 },
+        ];
+      },
+
+      stats() {
+        const s = { total: this.devices.length, pending: 0, processing: 0, done: 0, rejected: 0 };
+        for (const d of this.devices) if (s[d.status] !== undefined) s[d.status]++;
+        return s;
+      },
+      statCards() {
+        const s = this.stats;
+        return [
+          { key: 'total', label: this.t.totalDevices, value: s.total, color: 'var(--text)', trend: this.trends.total },
+          { key: 'pending', label: this.t.pending, value: s.pending, color: 'var(--text-dim)', trend: null },
+          { key: 'processing', label: this.t.processing, value: s.processing, color: 'var(--info)', trend: null },
+          { key: 'done', label: this.t.done, value: s.done, color: 'var(--accent)', trend: this.trends.done },
+          { key: 'rejected', label: this.t.rejected, value: s.rejected, color: 'var(--danger)', trend: null },
+        ];
+      },
+      trends() {
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const t0 = today.getTime();
+        const y0 = t0 - 86400000;
+        const ct = this.devices.filter(d => d.createdAt >= t0).length;
+        const cy = this.devices.filter(d => d.createdAt >= y0 && d.createdAt < t0).length;
+        const dt = this.devices.filter(d => d.doneDate && new Date(d.doneDate).getTime() >= t0).length;
+        const dy = this.devices.filter(d => d.doneDate && new Date(d.doneDate).getTime() >= y0 && new Date(d.doneDate).getTime() < t0).length;
+        const pct = (a, b) => b === 0 ? (a > 0 ? 100 : 0) : Math.round(((a - b) / b) * 100);
+        return { total: cy === 0 && ct === 0 ? null : pct(ct, cy), done: dy === 0 && dt === 0 ? null : pct(dt, dy) };
+      },
+
+      last7Days() {
+        const days = [];
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        for (let i = 6; i >= 0; i--) {
+          const d = today.getTime() - i * 86400000;
+          const label = new Date(d).toLocaleDateString(this.t.locale, { weekday: 'short' });
+          const count = this.devices.filter(x => x.doneDate &&
+            new Date(x.doneDate).getTime() >= d &&
+            new Date(x.doneDate).getTime() < d + 86400000).length;
+          days.push({ label, count });
+        }
+        return days;
+      },
+      totalDoneLast7() { return this.last7Days.reduce((s, d) => s + d.count, 0); },
+      maxDoneDay() { return Math.max(0, ...this.last7Days.map(d => d.count)); },
+
+      agingDays() { return this.prefs.agingDays; },
+      agingDevices() {
+        const cutoff = Date.now() - this.agingDays * 86400000;
+        return this.devices.filter(d => d.status === 'processing' && d.createdAt < cutoff);
+      },
+
+      recentDevices() {
+        return [...this.devices].sort((a, b) => b.createdAt - a.createdAt).slice(0, 5);
+      },
+
+      filteredDevices() {
+        const q = normalize(this.search);
+        return this.devices.filter(d => {
+          if (this.statusFilter !== 'all' && d.status !== this.statusFilter) return false;
+          if (q && !(normalize(d.imei).includes(q) || normalize(d.serial).includes(q) ||
+            normalize(d.sentByName).includes(q) || normalize(d.sentByPhone).includes(q))) return false;
+          if (this.dateFrom || this.dateTo) {
+            if (this.dateFrom && d.createdAt < new Date(this.dateFrom).getTime()) return false;
+            if (this.dateTo && d.createdAt >= new Date(this.dateTo).getTime() + 86400000) return false;
+          }
+          return true;
+        });
+      },
+      sortedDevices() {
+        const arr = [...this.filteredDevices];
+        arr.sort((a, b) => {
+          let av = a[this.sortBy], bv = b[this.sortBy];
+          if (this.sortBy === 'uploadDate') { av = a.createdAt; bv = b.createdAt; }
+          if (typeof av === 'string') { av = av.toLowerCase(); bv = (bv || '').toLowerCase(); }
+          if (av < bv) return this.sortDir === 'asc' ? -1 : 1;
+          if (av > bv) return this.sortDir === 'asc' ? 1 : -1;
+          return 0;
+        });
+        return arr;
+      },
+      totalPages() { return Math.max(1, Math.ceil(this.sortedDevices.length / this.pageSize)); },
+      pageStart() { return (this.currentPage - 1) * this.pageSize; },
+      pagedDevices() { return this.sortedDevices.slice(this.pageStart, this.pageStart + this.pageSize); },
+      allVisibleSelected() {
+        return this.pagedDevices.length > 0 && this.pagedDevices.every(d => this.selectedIds.includes(d.id));
+      },
+
+      activityLog() {
+        if (!this.selected) return [];
+        return [{ date: fmt(this.selected.uploadDate, this.t.locale), text: 'Device created' }];
+      },
+
+      bulkDeleteCount() {
+        const cutoff = this.bulkDeleteModal.range === 'all' ? 0 : Date.now() - parseInt(this.bulkDeleteModal.range, 10) * 86400000;
+        return this.devices.filter(d => {
+          if (this.bulkDeleteModal.status !== 'all' && d.status !== this.bulkDeleteModal.status) return false;
+          if (this.bulkDeleteModal.range !== 'all' && d.createdAt < cutoff) return false;
+          return true;
+        }).length;
+      },
+      bulkDeletePreview() {
+        const cutoff = this.bulkDeleteModal.range === 'all' ? 0 : Date.now() - parseInt(this.bulkDeleteModal.range, 10) * 86400000;
+        const matches = this.devices.filter(d => {
+          if (this.bulkDeleteModal.status !== 'all' && d.status !== this.bulkDeleteModal.status) return false;
+          if (this.bulkDeleteModal.range !== 'all' && d.createdAt < cutoff) return false;
+          return true;
+        });
+        return matches.slice(0, 5).map(d => d.imei).join(', ') + (matches.length > 5 ? '...' : '');
+      },
+
+      duplicateImeiDevice() {
+        if (!this.form.imei || this.form.imei.length !== 15) return null;
+        return this.devices.find(d => d.imei === this.form.imei) || null;
+      },
+      duplicateSerialDevice() {
+        if (!this.form.serial) return null;
+        return this.devices.find(d => d.serial === this.form.serial) || null;
+      },
+
+      imeiFieldClass() {
+        if (!this.imeiStatus.checked) return '';
+        return this.imeiStatus.valid && !this.duplicateImeiDevice ? 'valid' : 'invalid';
+      },
+      serialFieldClass() {
+        if (!this.form.serial) return '';
+        return this.duplicateSerialDevice ? 'invalid' : 'valid';
+      },
+
+      useCairoInEnglish() { return this.prefs.useCairoInEnglish; },
+    },
+
+    watch: {
+      lang: { immediate: true, handler(v) {
+        document.documentElement.lang = v;
+        document.documentElement.dir = v === 'ar' ? 'rtl' : 'ltr';
+        localStorage.setItem(KEYS.lang, v);
+      }},
+      theme: { immediate: true, handler(v) {
+        document.documentElement.classList.toggle('light', v === 'light');
+        localStorage.setItem(KEYS.theme, v);
+      }},
+      'prefs.useCairoInEnglish': { immediate: true, handler(v) {
+        document.documentElement.classList.toggle('font-cairo-en', !!v);
+      }},
+      features: { deep: true, handler(v) { try { localStorage.setItem(KEYS.features, JSON.stringify(v)); } catch (e) {} } },
+      prefs: { deep: true, handler(v) { try { localStorage.setItem(KEYS.prefs, JSON.stringify(v)); } catch (e) {} } },
+      search() { this.currentPage = 1; },
+      statusFilter() { this.currentPage = 1; },
+      pageSize() { this.currentPage = 1; },
+      form: { deep: true, handler(v) {
+        if (this.page !== 'add-device') return;
+        try { localStorage.setItem(KEYS.draft, JSON.stringify(v)); } catch (e) {}
+      }},
+    },
+
+    methods: {
+      fmtDate(v) { return fmt(v, this.t.locale); },
+      barHeight(count) {
+        const max = this.maxDoneDay || 0;
+        return max > 0 ? Math.round((count / max) * 100) : 0;
+      },
+      emptyForm() {
+        return { imei:'', serial:'', sentByName:'', sentByPhone:'', sentBySocial:'', notes:'', imagePreview:null };
+      },
+      setLang(l) { this.lang = l; },
+      toggleTheme() { this.theme = this.theme === 'dark' ? 'light' : 'dark'; },
+      setCairoEnglish(v) { this.prefs.useCairoInEnglish = v; },
+      toggleFeature(k, v) {
+        this.features[k] = v;
+        const pageKey = { dashboard:'dashboard', 'all-devices':'allDevices', 'add-device':'addDevice', settings:'settings' };
+        if (pageKey[this.page] === k && !v) this.page = 'dashboard';
+      },
+      pageKeyFor(pageId) {
+        return { dashboard:'dashboard', 'all-devices':'allDevices', 'add-device':'addDevice', settings:'settings' }[pageId];
+      },
+      statusLabel(v) {
+        const m = { pending:this.t.sPending, processing:this.t.sProcessing, done:this.t.sDone, rejected:this.t.sRejected };
+        return m[v] || v;
+      },
+      showToast(message, type, undo) {
+        this.toast = { message, type: type || 'success', undo: !!undo };
+        clearTimeout(this._toastTimer);
+        this._toastTimer = setTimeout(() => { this.toast = null; }, 3000);
+      },
+
+      /* ============== SUPABASE DATA ============== */
+      async loadAll() {
+        this.loading = true;
+        this.loadError = '';
+        try {
+          const { data, error } = await sb
+            .from('devices')
+            .select('*, device_images(id, image_url)')
+            .order('upload_date', { ascending: false });
+          if (error) throw error;
+          this.devices = (data || []).map(rowToDevice);
+          this.connOk = true;
+        } catch (e) {
+          console.error('loadAll', e);
+          this.connOk = false;
+          this.loadError = (e && e.message) || this.t.loadFailed;
+        } finally {
+          this.loading = false;
+        }
+      },
+
+      /* ============== NAVIGATION ============== */
+      navigateTo(page) {
+        this.page = page;
+        this.currentPage = 1;
+        if (page === 'add-device') {
+          try {
+            const d = localStorage.getItem(KEYS.draft);
+            if (d) {
+              const parsed = JSON.parse(d);
+              if (parsed && (parsed.imei || parsed.serial || parsed.sentByName)) {
+                this.form = { ...this.emptyForm(), ...parsed };
+                this.draftRestored = true;
+                this.validateImeiInput();
+              }
+            }
+          } catch (e) {}
+        }
+        if (page === 'dashboard' || page === 'all-devices') {
+          if (!this.devices.length && !this.loading) this.loadAll();
+        }
+      },
+      goToProcessingDevices() {
+        this.statusFilter = 'processing';
+        this.navigateTo('all-devices');
+      },
+      openDetails(id) {
+        const d = this.devices.find(x => String(x.id) === String(id));
+        if (d) { this.selected = JSON.parse(JSON.stringify(d)); this.page = 'details'; }
+      },
+
+      /* ============== VALIDATION ============== */
+      validateImeiInput() {
+        const v = (this.form.imei || '').trim();
+        this.imeiStatus = { checked: false, valid: false, error: '' };
+        if (!v) return;
+        if (!/^\d+$/.test(v)) { this.imeiStatus = { checked: true, valid: false, error: this.t.imeiInvalidDigits }; return; }
+        if (v.length !== 15) { this.imeiStatus = { checked: true, valid: false, error: this.t.imeiInvalidLength }; return; }
+        if (!luhnValid(v)) { this.imeiStatus = { checked: true, valid: false, error: this.t.imeiInvalidLuhn }; return; }
+        this.imeiStatus = { checked: true, valid: true, error: '' };
+      },
+      validateSerialInput() {},
+      validateForm() {
+        const e = {};
+        const imei = (this.form.imei || '').trim();
+        const serial = (this.form.serial || '').trim();
+        const name = (this.form.sentByName || '').trim();
+        const phone = (this.form.sentByPhone || '').trim();
+        const social = (this.form.sentBySocial || '').trim();
+
+        if (!imei) e.imei = this.t.required;
+        else if (!/^\d+$/.test(imei)) e.imei = this.t.imeiInvalidDigits;
+        else if (imei.length !== 15) e.imei = this.t.imeiInvalidLength;
+        else if (!luhnValid(imei)) e.imei = this.t.imeiInvalidLuhn;
+        else if (this.devices.some(d => d.imei === imei)) e.imei = this.t.imeiExists;
+
+        if (!serial) e.serial = this.t.required;
+        else if (this.devices.some(d => d.serial === serial)) e.serial = this.t.serialExists;
+
+        if (!name) e.sentByName = this.t.required;
+        if (phone && !/^[+]?[\d\s\-()]{6,}$/.test(phone)) e.sentByPhone = this.t.invalidPhone;
+        if (social) { try { new URL(social); } catch (_) { e.sentBySocial = this.t.invalidUrl; } }
+
+        this.errors = e;
+        return Object.keys(e).length === 0;
+      },
+
+      /* ============== SAVE ============== */
+      async saveDevice() {
+        if (this.saving) return;
+        if (!this.validateForm()) { this.showToast(this.t.fixErrors, 'error'); return; }
+        this.saving = true;
+        try {
+          const now = new Date().toISOString();
+          const payload = {
+            imei: this.form.imei.trim(),
+            serial: this.form.serial.trim(),
+            sent_by_name: this.form.sentByName.trim(),
+            sent_by_phone: this.form.sentByPhone.trim() || null,
+            sent_by_social: this.form.sentBySocial.trim() || null,
+            notes: this.form.notes.trim() || null,
+            status: 'pending',
+            updated_at: now,
+          };
+          const { data: inserted, error } = await sb.from('devices').insert([payload]).select().single();
+          if (error) throw error;
+
+          if (this.form.imagePreview && inserted) {
+            try { await this.uploadImageToDevice(inserted.id, this.form.imagePreview); }
+            catch (uerr) { console.warn('image upload failed', uerr); this.showToast(this.t.uploadFailed, 'error'); }
+          }
+
+          this.form = this.emptyForm();
+          this.imeiStatus = { checked:false, valid:false, error:'' };
+          this.clearDraft();
+          this.draftRestored = false;
+          this.showToast(this.t.saved);
+          await this.loadAll();
+          this.page = 'all-devices';
+        } catch (e) {
+          console.error('saveDevice', e);
+          this.showToast((e && e.message) || this.t.saveFailed, 'error');
+        } finally {
+          this.saving = false;
+        }
+      },
+      cancelAddDevice() {
+        this.clearDraft();
+        this.form = this.emptyForm();
+        this.imeiStatus = { checked:false, valid:false, error:'' };
+        this.navigateTo('dashboard');
+      },
+      clearDraft() {
+        try { localStorage.removeItem(KEYS.draft); } catch (e) {}
+        this.draftRestored = false;
+      },
+
+      /* ============== IMAGE UPLOAD ============== */
+      async uploadImageToDevice(deviceId, dataUrl) {
+        const blob = await (await fetch(dataUrl)).blob();
+        const ext = (blob.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
+        const fileName = `devices/${deviceId}/${uuid()}.${ext}`;
+        const { error: upErr } = await sb.storage.from(BUCKET).upload(fileName, blob, {
+          cacheControl: '3600', upsert: false, contentType: blob.type || 'image/jpeg',
+        });
+        if (upErr) throw upErr;
+        const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(fileName);
+        const imageUrl = pub && pub.publicUrl;
+        if (!imageUrl) throw new Error('No public URL');
+        const { error: dbErr } = await sb.from('device_images').insert([{ device_id: deviceId, image_url: imageUrl }]);
+        if (dbErr) throw dbErr;
+        return imageUrl;
+      },
+
+      /* ============== STATUS ============== */
+      async applyStatusRemote(id, newStatus) {
+        const dev = this.devices.find(x => String(x.id) === String(id));
+        if (!dev) return;
+        const now = new Date().toISOString();
+        const patch = { status: newStatus, updated_at: now };
+        if (newStatus === 'done' && !dev.doneDate) patch.done_date = now;
+        const { error } = await sb.from('devices').update(patch).eq('id', id);
+        if (error) throw error;
+        dev.status = newStatus;
+        if (patch.done_date) dev.doneDate = patch.done_date;
+      },
+      async updateStatus(newStatus) {
+        if (!this.selected || this.busy) return;
+        this.busy = true;
+        try {
+          await this.applyStatusRemote(this.selected.id, newStatus);
+          const fresh = this.devices.find(x => String(x.id) === String(this.selected.id));
+          if (fresh) this.selected = JSON.parse(JSON.stringify(fresh));
+          this.showToast(this.t.statusUpdated);
+        } catch (e) {
+          console.error(e); this.showToast((e && e.message) || this.t.saveFailed, 'error');
+        } finally { this.busy = false; }
+      },
+      async quickUpdateStatus(id, newStatus) {
+        if (this.busy) return;
+        this.busy = true;
+        try {
+          await this.applyStatusRemote(id, newStatus);
+          this.showToast(this.t.statusUpdated);
+        } catch (e) {
+          console.error(e); this.showToast((e && e.message) || this.t.saveFailed, 'error');
+          await this.loadAll();
+        } finally { this.busy = false; }
+      },
+      async bulkUpdateStatus(newStatus) {
+        if (this.busy || !this.selectedIds.length) return;
+        this.busy = true;
+        try {
+          const now = new Date().toISOString();
+          const ids = this.selectedIds.slice();
+          const { error } = await sb.from('devices').update({ status: newStatus, updated_at: now }).in('id', ids);
+          if (error) throw error;
+          this.selectedIds = [];
+          await this.loadAll();
+          this.showToast(this.t.statusUpdated);
+        } catch (e) {
+          console.error(e); this.showToast((e && e.message) || this.t.saveFailed, 'error');
+        } finally { this.busy = false; }
+      },
+
+      /* ============== DELETE ============== */
+      async deleteDevice(id) {
+        const d = this.devices.find(x => String(x.id) === String(id));
+        if (!d || this.busy) return;
+        if (!confirm(this.t.confirmDelete + '\n' + d.imei + ' (' + d.serial + ')')) return;
+        this.busy = true;
+        try {
+          const { error } = await sb.from('devices').delete().eq('id', id);
+          if (error) throw error;
+          if (this.selected && String(this.selected.id) === String(id)) {
+            this.selected = null; this.page = 'all-devices';
+          }
+          await this.loadAll();
+          this.showToast(this.t.deleted, 'error');
+        } catch (e) {
+          console.error(e); this.showToast((e && e.message) || this.t.deleteFailed, 'error');
+        } finally { this.busy = false; }
+      },
+      async bulkDelete() {
+        if (!this.selectedIds.length || this.busy) return;
+        const n = this.selectedIds.length;
+        if (!confirm(this.t.confirmBulkDelete.replace('{n}', n))) return;
+        this.busy = true;
+        try {
+          const ids = this.selectedIds.slice();
+          const { error } = await sb.from('devices').delete().in('id', ids);
+          if (error) throw error;
+          this.selectedIds = [];
+          await this.loadAll();
+          this.showToast(this.t.deleted, 'error');
+        } catch (e) {
+          console.error(e); this.showToast((e && e.message) || this.t.deleteFailed, 'error');
+        } finally { this.busy = false; }
+      },
+      openBulkDelete() { this.bulkDeleteModal.open = true; },
+      async confirmBulkDelete() {
+        if (this.busy) return;
+        const cutoff = this.bulkDeleteModal.range === 'all' ? 0 : Date.now() - parseInt(this.bulkDeleteModal.range, 10) * 86400000;
+        const matches = this.devices.filter(d => {
+          if (this.bulkDeleteModal.status !== 'all' && d.status !== this.bulkDeleteModal.status) return false;
+          if (this.bulkDeleteModal.range !== 'all' && d.createdAt < cutoff) return false;
+          return true;
+        });
+        if (!matches.length) { this.bulkDeleteModal.open = false; return; }
+        this.busy = true;
+        try {
+          const ids = matches.map(d => d.id);
+          const { error } = await sb.from('devices').delete().in('id', ids);
+          if (error) throw error;
+          this.bulkDeleteModal.open = false;
+          await this.loadAll();
+          this.showToast(this.t.deleted + ' (' + ids.length + ')', 'error');
+        } catch (e) {
+          console.error(e); this.showToast((e && e.message) || this.t.deleteFailed, 'error');
+        } finally { this.busy = false; }
+      },
+
+      /* ============== TABLE ============== */
+      setSort(col) {
+        if (this.sortBy === col) this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
+        else { this.sortBy = col; this.sortDir = 'asc'; }
+      },
+      setDatePreset(days) {
+        const to = new Date();
+        const from = new Date(Date.now() - (days - 1) * 86400000);
+        this.dateFrom = from.toISOString().slice(0, 10);
+        this.dateTo = to.toISOString().slice(0, 10);
+      },
+      toggleSelectAll() {
+        if (this.allVisibleSelected) {
+          this.selectedIds = this.selectedIds.filter(id => !this.pagedDevices.some(d => d.id === id));
+        } else {
+          this.selectedIds = Array.from(new Set([...this.selectedIds, ...this.pagedDevices.map(d => d.id)]));
+        }
+      },
+      isDuplicateImei(imei) { return this.devices.filter(d => d.imei === imei).length > 1; },
+      isDuplicateSerial(serial) { return this.devices.filter(d => d.serial === serial).length > 1; },
+
+      /* ============== IMAGE FILE PICKERS ============== */
+      processImageFile(f, cb) {
+        if (!f) return;
+        if (!f.type.startsWith('image/')) { this.showToast(this.t.onlyImages, 'error'); return; }
+        if (f.size > 5 * 1024 * 1024) { this.showToast(this.t.maxSize, 'error'); return; }
+        const reader = new FileReader();
+        reader.onload = ev => cb(ev.target.result);
+        reader.readAsDataURL(f);
+      },
+      onFileChange(e) { this.processImageFile(e.target.files[0], url => { this.form.imagePreview = url; }); },
+      onDropAdd(e) {
+        this.dropzoneActive = false;
+        this.processImageFile(e.dataTransfer.files[0], url => { this.form.imagePreview = url; });
+      },
+      onDetailsFileChange(e) { this.processImageFile(e.target.files[0], url => this.addImageToSelected(url)); },
+      onDropDetails(e) {
+        this.dropzoneActiveDetails = false;
+        this.processImageFile(e.dataTransfer.files[0], url => this.addImageToSelected(url));
+      },
+      async addImageToSelected(dataUrl) {
+        if (!this.selected || this.busy) return;
+        this.busy = true;
+        try {
+          await this.uploadImageToDevice(this.selected.id, dataUrl);
+          await this.loadAll();
+          const fresh = this.devices.find(x => String(x.id) === String(this.selected.id));
+          if (fresh) this.selected = JSON.parse(JSON.stringify(fresh));
+          this.showToast(this.t.imageAdded);
+        } catch (e) {
+          console.error(e); this.showToast((e && e.message) || this.t.uploadFailed, 'error');
+        } finally { this.busy = false; }
+      },
+      async removeImage(i) {
+        if (!this.selected || this.busy) return;
+        const imgRow = (this.selected.imageRows || [])[i];
+        if (!imgRow) return;
+        this.busy = true;
+        try {
+          const { error } = await sb.from('device_images').delete().eq('id', imgRow.id);
+          if (error) throw error;
+          await this.loadAll();
+          const fresh = this.devices.find(x => String(x.id) === String(this.selected.id));
+          if (fresh) this.selected = JSON.parse(JSON.stringify(fresh));
+          this.showToast(this.t.imageRemoved);
+        } catch (e) {
+          console.error(e); this.showToast((e && e.message) || this.t.deleteFailed, 'error');
+        } finally { this.busy = false; }
+      },
+
+      /* ============== EXPORT ============== */
+      exportCSV() {
+        const rows = this.sortedDevices;
+        const headers = ['IMEI','Serial','Sent By','Phone','Social','Status','Upload Date','Done Date','Notes'];
+        const esc = csvCell;
+        const csv = [
+          headers.join(','),
+          ...rows.map(d => [
+            esc(d.imei), esc(d.serial), esc(d.sentByName), esc(d.sentByPhone),
+            esc(d.sentBySocial), esc(this.statusLabel(d.status)), esc(fmt(d.uploadDate, this.t.locale)),
+            esc(d.doneDate ? fmt(d.doneDate, this.t.locale) : ''), esc(d.notes),
+          ].join(',')),
+        ].join('\n');
+        downloadBlob(new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' }), 'warehouse-devices-' + todayStr() + '.csv');
+      },
+      exportBackup() {
+        const data = { version: 5, exportedAt: new Date().toISOString(), devices: this.devices, features: this.features, prefs: this.prefs };
+        downloadBlob(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }), 'warehouse-backup-' + todayStr() + '.json');
+        this.showToast(this.t.backupAll);
+      },
+      restoreBackup(e) {
+        const f = e.target.files[0]; if (!f) return;
+        const reader = new FileReader();
+        reader.onload = async ev => {
+          try {
+            const d = JSON.parse(ev.target.result);
+            if (!d.devices || !Array.isArray(d.devices)) throw new Error('Invalid backup file');
+            if (!confirm('Restore ' + d.devices.length + ' devices to Supabase? Duplicates will be skipped.')) return;
+            this.busy = true;
+            let imported = 0;
+            for (const raw of d.devices) {
+              if (!raw || !raw.imei || !raw.serial) continue;
+              if (this.devices.some(x => x.imei === raw.imei || x.serial === raw.serial)) continue;
+              const payload = {
+                imei: raw.imei, serial: raw.serial,
+                sent_by_name: raw.sentByName || raw.sent_by_name || '—',
+                sent_by_phone: raw.sentByPhone || raw.sent_by_phone || null,
+                sent_by_social: raw.sentBySocial || raw.sent_by_social || null,
+                notes: raw.notes || null,
+                status: raw.status || 'pending',
+              };
+              const { error } = await sb.from('devices').insert([payload]);
+              if (!error) imported++;
+            }
+            await this.loadAll();
+            this.showToast(this.t.importDone.replace('{n}', imported));
+          } catch (err) { alert('Failed: ' + err.message); }
+          finally { this.busy = false; }
+        };
+        reader.readAsText(f);
+      },
+      async resetAll() {
+        if (this.busy) return;
+        if (!confirm(this.t.resetConfirm)) return;
+        this.busy = true;
+        try {
+          const ids = this.devices.map(d => d.id);
+          if (ids.length) {
+            const { error } = await sb.from('devices').delete().in('id', ids);
+            if (error) throw error;
+          }
+          this.devices = [];
+          this.selected = null;
+          this.page = 'dashboard';
+          this.showToast(this.t.resetDone);
+        } catch (e) {
+          console.error(e); this.showToast((e && e.message) || this.t.deleteFailed, 'error');
+        } finally { this.busy = false; }
+      },
+
+      /* ============== LOCAL MIGRATION ============== */
+      async migrateFromLocal() {
+        if (this.migrating) return;
+        let old = null;
+        try { old = JSON.parse(localStorage.getItem(KEYS.legacyDevices) || 'null'); } catch (e) {}
+        if (!Array.isArray(old) || !old.length) { this.showToast(this.t.noLocalData, 'info'); return; }
+        if (!confirm('Migrate ' + old.length + ' local devices to Supabase? Duplicates will be skipped.')) return;
+        this.migrating = true;
+        let imported = 0;
+        try {
+          for (const raw of old) {
+            if (!raw || !raw.imei || !raw.serial) continue;
+            if (this.devices.some(x => x.imei === raw.imei || x.serial === raw.serial)) continue;
+            const payload = {
+              imei: raw.imei, serial: raw.serial,
+              sent_by_name: raw.sentByName || '—',
+              sent_by_phone: raw.sentByPhone || null,
+              sent_by_social: raw.sentBySocial || null,
+              notes: raw.notes || null,
+              status: raw.status || 'pending',
+              done_date: raw.doneDate ? new Date(raw.doneDate).toISOString() : null,
+            };
+            const { error } = await sb.from('devices').insert([payload]);
+            if (!error) imported++;
+          }
+          await this.loadAll();
+          this.showToast(this.t.migrationDone.replace('{n}', imported));
+        } catch (e) {
+          console.error(e); this.showToast((e && e.message) || this.t.saveFailed, 'error');
+        } finally { this.migrating = false; }
+      },
+
+      printDetails() { window.print(); },
+
+      /* ============== IMPORT ============== */
+      openImport() { this.importModal = { open: true, rows: [] }; },
+      downloadTemplate() {
+        const headers = ['IMEI','Serial','Sent By','Phone'];
+        const sample = [
+          ['358941078234567','LN9028441Z','Global Logistics Co.','+20 100 555 7788'],
+          ['352219448372102','AP0019283X','Priority Express',''],
+        ];
+        const ws = XLSX.utils.aoa_to_sheet([headers, ...sample]);
+        ws['!cols'] = [{ wch:20 },{ wch:15 },{ wch:25 },{ wch:20 }];
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Devices');
+        XLSX.writeFile(wb, 'warehouse-template.xlsx');
+      },
+      handleImportFile(e) { this.readImportFile(e.target.files[0]); },
+      onDropImport(e) { this.importDropzoneActive = false; this.readImportFile(e.dataTransfer.files[0]); },
+      readImportFile(f) {
+        if (!f) return;
+        const reader = new FileReader();
+        reader.onload = ev => {
+          try {
+            const wb = XLSX.read(ev.target.result, { type: 'array' });
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+            const rows = json.map(r => {
+              const imei = String(r.IMEI || r.imei || '').trim();
+              const serial = String(r.Serial || r.serial || r['Serial Number'] || '').trim();
+              const sentByName = String(r['Sent By'] || r.sentByName || r.Name || '').trim();
+              const sentByPhone = String(r.Phone || r.sentByPhone || '').trim();
+              const dup = this.devices.some(d => d.imei === imei || d.serial === serial);
+              return { imei, serial, sentByName, sentByPhone, dup };
+            }).filter(r => r.imei && r.serial && r.sentByName);
+            const valid = rows.filter(r => luhnValid(r.imei));
+            const skipped = rows.length - valid.length;
+            this.importModal.rows = valid;
+            if (skipped) this.showToast(this.t.importSkipped.replace('{n}', skipped), 'error');
+          } catch (err) { alert('Failed: ' + err.message); }
+        };
+        reader.readAsArrayBuffer(f);
+      },
+      async confirmImport() {
+        if (this.busy) return;
+        this.busy = true;
+        let imported = 0;
+        try {
+          for (const r of this.importModal.rows) {
+            if (!luhnValid(r.imei)) continue;
+            if (this.devices.some(d => d.imei === r.imei || d.serial === r.serial)) continue;
+            const payload = {
+              imei: r.imei, serial: r.serial,
+              sent_by_name: r.sentByName,
+              sent_by_phone: r.sentByPhone || null,
+              status: 'pending',
+            };
+            const { error } = await sb.from('devices').insert([payload]);
+            if (!error) imported++;
+          }
+          this.importModal = { open: false, rows: [] };
+          await this.loadAll();
+          this.showToast(this.t.importDone.replace('{n}', imported));
+        } catch (e) {
+          console.error(e); this.showToast((e && e.message) || this.t.saveFailed, 'error');
+        } finally { this.busy = false; }
+      },
+
+      /* ============== SCANNER ============== */
+      async openScanner(target) {
+        this.scanner.open = true;
+        this.scanner.target = target;
+        this.scanner.manual = '';
+        await nextTick();
+        try {
+          if (!window.Html5Qrcode) {
+            await new Promise((res, rej) => {
+              const s = document.createElement('script');
+              s.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
+              s.onload = res; s.onerror = rej;
+              document.head.appendChild(s);
+            });
+          }
+          const el = document.getElementById('qr-reader');
+          if (!el || !window.Html5Qrcode) return;
+          this.scanner.instance = new Html5Qrcode('qr-reader');
+          await this.scanner.instance.start(
+            { facingMode: 'environment' },
+            { fps: 10, qrbox: 250 },
+            decoded => this.onScanSuccess(decoded),
+            () => {}
+          );
+        } catch (e) { console.warn('Scanner init failed:', e); }
+      },
+      onScanSuccess(text) {
+        const v = String(text).trim();
+        if (this.scanner.target === 'imei') { this.form.imei = v; this.validateImeiInput(); }
+        else if (this.scanner.target === 'serial') { this.form.serial = v; }
+        this.closeScanner();
+      },
+      closeScanner() {
+        try {
+          if (this.scanner.instance) {
+            this.scanner.instance.stop().then(() => this.scanner.instance.clear()).catch(() => {});
+          }
+        } catch (e) {}
+        this.scanner = { open:false, target:null, manual:'', instance:null };
+      },
+    },
+
+    async mounted() {
+      window.addEventListener('keydown', e => {
+        const tag = (e.target.tagName || '').toLowerCase();
+        if (tag === 'input' || tag === 'textarea' || tag === 'select') {
+          if (e.key === 'Escape') e.target.blur();
+          return;
+        }
+        if (e.key === '/') {
+          e.preventDefault();
+          this.navigateTo('all-devices');
+          nextTick(() => this.$refs.searchInput && this.$refs.searchInput.focus());
+        } else if (e.key.toLowerCase() === 'n') {
+          e.preventDefault(); this.navigateTo('add-device');
+        } else if (e.key === 'Escape') {
+          this.navigateTo('dashboard');
+        }
+      });
+
+      try {
+        const manifest = {
+          name:'Warehouse OS', short_name:'WH OS', start_url: location.pathname,
+          display:'standalone', background_color:'#121212', theme_color:'#22c55e',
+          icons:[{ src:'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%2322c55e"/><text x="50" y="65" font-size="60" text-anchor="middle" fill="white">W</text></svg>', sizes:'100x100', type:'image/svg+xml' }],
+        };
+        const blob = new Blob([JSON.stringify(manifest)], { type:'application/json' });
+        document.getElementById('pwa-manifest').href = URL.createObjectURL(blob);
+      } catch (e) {}
+
+      await this.loadAll();
+    },
+  }).mount('#app');
+})();
+</script>
+</body>
+</html>
